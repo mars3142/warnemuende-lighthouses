@@ -35,3 +35,14 @@ jobs:
         with:
           esp_idf_version: ${{ matrix.idf_ver }}
           target: ${{ matrix.idf_target }}
+      - name: Archive build output artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouses-${{ matrix.idf_target }}-${{ matrix.idf_ver }}
+          path: |
+            build/flasher_args.json
+            build/storage.bin
+            build/ota_data_initial.bin
+            build/lighthouses.bin
+            build/bootloader/bootloader.bin
+            build/partition_table/partition-table.bin
