@@ -21,7 +21,7 @@ static LedMatrix ledMatrix = {.size = 64};
 static SemaphoreHandle_t timer_semaphore;
 gptimer_handle_t gpTimer = NULL;
 
-bool IRAM_ATTR timerCallback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *userCtx)
+bool IRAM_ATTR timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *userCtx)
 {
     BaseType_t high_task_wakeup = pdFALSE;
     xSemaphoreGiveFromISR(timer_semaphore, &high_task_wakeup);
@@ -32,7 +32,7 @@ bool IRAM_ATTR timerCallback(gptimer_handle_t timer, const gptimer_alarm_event_d
     return true;
 }
 
-void timerEventTask(void *arg)
+void timer_event_task(void *arg)
 {
     while (true)
     {
@@ -53,7 +53,7 @@ void timerEventTask(void *arg)
     }
 }
 
-esp_err_t initWled(void)
+esp_err_t wled_init(void)
 {
     led_strip_config_t stripConfig = {.strip_gpio_num = CONFIG_WLED_DIN_PIN,
                                       .max_leds = ledMatrix.size,
@@ -81,7 +81,7 @@ esp_err_t initWled(void)
     return ESP_OK;
 }
 
-esp_err_t startBeacon(void)
+esp_err_t beacon_start(void)
 {
     if (gpTimer == NULL)
     {
@@ -100,7 +100,7 @@ esp_err_t startBeacon(void)
     return ret;
 }
 
-esp_err_t stopBeacon(void)
+esp_err_t beacon_stop(void)
 {
     if (gpTimer == NULL)
     {
@@ -119,7 +119,7 @@ esp_err_t stopBeacon(void)
     return ret;
 }
 
-esp_err_t initBeacon(void)
+esp_err_t beacon_init(void)
 {
     esp_err_t ret = ESP_OK;
 
@@ -134,7 +134,7 @@ esp_err_t initBeacon(void)
         goto exit;
     }
 
-    gptimer_event_callbacks_t callbacks = {.on_alarm = timerCallback};
+    gptimer_event_callbacks_t callbacks = {.on_alarm = timer_callback};
     ret = gptimer_register_event_callbacks(gpTimer, &callbacks, NULL);
     if (ret != ESP_OK)
     {
@@ -158,7 +158,7 @@ esp_err_t initBeacon(void)
         goto cleanupEnabledTimer;
     }
 
-    BaseType_t taskCreated = xTaskCreate(timerEventTask, "timer_event_task", 4096, NULL, 10, NULL);
+    BaseType_t taskCreated = xTaskCreate(timer_event_task, "timer_event_task", 4096, NULL, 10, NULL);
     if (taskCreated != pdPASS)
     {
         ESP_LOGE(TAG, "Failed to create timer event task");

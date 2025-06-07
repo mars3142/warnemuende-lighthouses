@@ -12,7 +12,7 @@
  *     - ESP_OK: Initialization completed successfully.
  *     - Error codes in case of failure, indicating the specific issue.
  */
-esp_err_t initBeacon(void);
+esp_err_t beacon_init(void);
 
 /**
  * @brief Starts the beacon functionality for broadcasting signals.
@@ -24,7 +24,7 @@ esp_err_t initBeacon(void);
  *     - ESP_OK: Beacon started successfully.
  *     - Error codes in case of failure, indicating the specific issue.
  */
-esp_err_t startBeacon(void);
+esp_err_t beacon_start(void);
 
 /**
  * @brief Stops the beacon broadcasting functionality.
@@ -36,7 +36,7 @@ esp_err_t startBeacon(void);
  *     - ESP_OK: Broadcasting stopped successfully.
  *     - Error codes in case of failure, indicating the specific issue.
  */
-esp_err_t stopBeacon(void);
+esp_err_t beacon_stop(void);
 
 /**
  * @brief Initializes the WLED module.
@@ -48,4 +48,4 @@ esp_err_t stopBeacon(void);
  *     - ESP_OK: Initialization completed successfully.
  *     - Error codes in case of failure, indicating the specific issue.
  */
-esp_err_t initWled(void);
+esp_err_t wled_init(void);
