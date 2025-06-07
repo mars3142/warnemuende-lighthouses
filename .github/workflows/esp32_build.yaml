@@ -2,6 +2,10 @@ name: ESP-IDF Build
 
 on:
   push:
+    paths:
+      - bootloader_components/**
+      - components/**
+      - main/**
   pull_request:
   merge_group:
   schedule:
