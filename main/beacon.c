@@ -1,6 +1,5 @@
 #include "beacon.h"
 
-#include "driver/gpio.h"
 #include "driver/gptimer.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -8,14 +7,9 @@
 #include "inttypes.h"
 #include "led_strip.h"
 #include "sdkconfig.h"
+#include "semaphore.h"
 
 static const char *TAG = "beacon";
-
-typedef struct
-{
-    uint32_t count;
-    uint32_t alarm;
-} TimerEvent;
 
 typedef struct
 {
@@ -24,24 +18,25 @@ typedef struct
 } LedMatrix;
 
 static LedMatrix ledMatrix = {.size = 64};
-static QueueHandle_t timerEvtQueue = NULL;
+static SemaphoreHandle_t timer_semaphore;
 gptimer_handle_t gpTimer = NULL;
 
 bool IRAM_ATTR timerCallback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *userCtx)
 {
-    TimerEvent evt = {.count = edata->count_value, .alarm = edata->alarm_value};
-    BaseType_t highTaskWakeup = pdFALSE;
-    xQueueSendFromISR(timerEvtQueue, &evt, &highTaskWakeup);
-
-    return (highTaskWakeup == pdTRUE);
+    BaseType_t high_task_wakeup = pdFALSE;
+    xSemaphoreGiveFromISR(timer_semaphore, &high_task_wakeup);
+    if (high_task_wakeup)
+    {
+        portYIELD_FROM_ISR();
+    }
+    return true;
 }
 
 void timerEventTask(void *arg)
 {
-    TimerEvent evt;
     while (true)
     {
-        if (xQueueReceive(timerEvtQueue, &evt, portMAX_DELAY))
+        if (xSemaphoreTake(timer_semaphore, portMAX_DELAY))
         {
             static bool level = false;
             level = !level;
@@ -53,8 +48,7 @@ void timerEventTask(void *arg)
                 }
                 led_strip_refresh(ledMatrix.ledStrip);
             }
-            ESP_LOGI(TAG, "Timer Event: count = %" PRIu32 ", alarm = %" PRIu32 ", GPIO now %s", evt.count, evt.alarm,
-                     level ? "HIGH" : "LOW");
+            ESP_LOGD(TAG, "Timer Event, LED now %s", level ? "ON" : "OFF");
         }
     }
 }
@@ -128,13 +122,8 @@ esp_err_t stopBeacon(void)
 esp_err_t initBeacon(void)
 {
     esp_err_t ret = ESP_OK;
-    timerEvtQueue = xQueueCreate(10, sizeof(TimerEvent));
-    if (timerEvtQueue == NULL)
-    {
-        ESP_LOGE(TAG, "Failed to create timer event queue");
-        ret = ESP_ERR_NO_MEM;
-        goto exit;
-    }
+
+    timer_semaphore = xSemaphoreCreateBinary();
 
     gptimer_config_t timerConfig = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT, .direction = GPTIMER_COUNT_UP, .resolution_hz = 1000000};
@@ -142,7 +131,7 @@ esp_err_t initBeacon(void)
     if (ret != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to create new gptimer: %s", esp_err_to_name(ret));
-        goto cleanupQueue;
+        goto exit;
     }
 
     gptimer_event_callbacks_t callbacks = {.on_alarm = timerCallback};
@@ -190,12 +179,6 @@ cleanupTimer:
     {
         gptimer_del_timer(gpTimer);
         gpTimer = NULL;
-    }
-cleanupQueue:
-    if (timerEvtQueue)
-    {
-        vQueueDelete(timerEvtQueue);
-        timerEvtQueue = NULL;
     }
 exit:
     return ret;
