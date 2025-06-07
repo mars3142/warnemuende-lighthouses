@@ -4,27 +4,21 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "inttypes.h"
 #include "led_strip.h"
+#include "light.h"
 #include "sdkconfig.h"
 #include "semaphore.h"
 
 static const char *TAG = "beacon";
 
-typedef struct
-{
-    led_strip_handle_t led_strip;
-    uint32_t size;
-} LedMatrix_t;
-
-static LedMatrix_t led_matrix = {.size = 64};
 static SemaphoreHandle_t timer_semaphore;
 gptimer_handle_t gptimer = NULL;
 
-const uint32_t value = 10;
-const uint32_t mod = 3;
+static const uint32_t value = 10;
+static const uint32_t mod = 2;
 
-bool IRAM_ATTR timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *userCtx)
+static bool IRAM_ATTR beacon_timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata,
+                                            void *userCtx)
 {
     BaseType_t high_task_wakeup = pdFALSE;
     xSemaphoreGiveFromISR(timer_semaphore, &high_task_wakeup);
@@ -35,12 +29,14 @@ bool IRAM_ATTR timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_
     return true;
 }
 
-void timer_event_task(void *arg)
+static void beacon_timer_event_task(void *arg)
 {
     while (true)
     {
         if (xSemaphoreTake(timer_semaphore, portMAX_DELAY))
         {
+            LedMatrix_t led_matrix = get_led_matrix();
+
             static bool level = false;
             level = !level;
             if (led_matrix.led_strip)
@@ -57,37 +53,6 @@ void timer_event_task(void *arg)
             ESP_LOGD(TAG, "Timer Event, LED now %s", level ? "ON" : "OFF");
         }
     }
-}
-
-esp_err_t wled_init(void)
-{
-    led_strip_config_t strip_config = {.strip_gpio_num = CONFIG_WLED_DIN_PIN,
-                                       .max_leds = led_matrix.size,
-                                       .led_model = LED_MODEL_WS2812,
-                                       .color_component_format = LED_STRIP_COLOR_COMPONENT_FMT_RGB,
-                                       .flags = {
-                                           .invert_out = false,
-                                       }};
-
-    led_strip_rmt_config_t rmt_config = {.clk_src = RMT_CLK_SRC_DEFAULT,
-                                         .resolution_hz = 0,
-                                         .mem_block_symbols = 0,
-                                         .flags = {
-                                             .with_dma = true,
-                                         }};
-
-    ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip_config, &rmt_config, &led_matrix.led_strip));
-
-    for (uint32_t i = 0; i < led_matrix.size; i++)
-    {
-        if (i % mod != 0)
-        {
-            led_strip_set_pixel(led_matrix.led_strip, i, value, value, value);
-        }
-    }
-    led_strip_refresh(led_matrix.led_strip);
-
-    return ESP_OK;
 }
 
 esp_err_t beacon_start(void)
@@ -143,7 +108,7 @@ esp_err_t beacon_init(void)
         goto exit;
     }
 
-    gptimer_event_callbacks_t callbacks = {.on_alarm = timer_callback};
+    gptimer_event_callbacks_t callbacks = {.on_alarm = beacon_timer_callback};
     ret = gptimer_register_event_callbacks(gptimer, &callbacks, NULL);
     if (ret != ESP_OK)
     {
@@ -167,7 +132,7 @@ esp_err_t beacon_init(void)
         goto cleanupEnabledTimer;
     }
 
-    BaseType_t task_created = xTaskCreate(timer_event_task, "timer_event_task", 4096, NULL, 10, NULL);
+    BaseType_t task_created = xTaskCreate(beacon_timer_event_task, "beacon_timer_event_task", 4096, NULL, 10, NULL);
     if (task_created != pdPASS)
     {
         ESP_LOGE(TAG, "Failed to create timer event task");

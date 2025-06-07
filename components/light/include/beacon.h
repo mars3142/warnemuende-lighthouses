@@ -37,15 +37,3 @@ esp_err_t beacon_start(void);
  *     - Error codes in case of failure, indicating the specific issue.
  */
 esp_err_t beacon_stop(void);
-
-/**
- * @brief Initializes the WLED module.
- *
- * This function configures the WLED module for operation, preparing it for subsequent
- * usage such as enabling lighting effects or communication.
- *
- * @return
- *     - ESP_OK: Initialization completed successfully.
- *     - Error codes in case of failure, indicating the specific issue.
- */
-esp_err_t wled_init(void);
