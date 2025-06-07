@@ -47,7 +47,7 @@ void timerEventTask(void *arg)
             level = !level;
             if (ledMatrix.ledStrip)
             {
-                for (uint32_t i = 0; i < ledMatrix.size; i++)
+                for (uint32_t i = 0; i < (ledMatrix.size / 2); i++)
                 {
                     led_strip_set_pixel(ledMatrix.ledStrip, i, 0, (level) ? 100 : 0, 0);
                 }
@@ -76,6 +76,13 @@ esp_err_t initWled(void)
                                             .with_dma = true,
                                         }};
     ESP_ERROR_CHECK(led_strip_new_rmt_device(&stripConfig, &rmtConfig, &ledMatrix.ledStrip));
+
+    const uint32_t value = 25;
+    for (uint32_t i = (ledMatrix.size / 2); i < ledMatrix.size; i++)
+    {
+        led_strip_set_pixel(ledMatrix.ledStrip, i, value, value, value);
+    }
+    led_strip_refresh(ledMatrix.ledStrip);
 
     return ESP_OK;
 }
