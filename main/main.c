@@ -2,7 +2,19 @@
 
 void app_main(void)
 {
-    ESP_ERROR_CHECK(beacon_init());
-    ESP_ERROR_CHECK(wled_init());
-    ESP_ERROR_CHECK(beacon_start());
+    if (initBeacon() != ESP_OK)
+    {
+        printf("Failed to initialize beacon");
+        return;
+    }
+    if (initWled() != ESP_OK)
+    {
+        printf("Failed to initialize WLED");
+        return;
+    }
+    if (startBeacon() != ESP_OK)
+    {
+        printf("Failed to start beacon");
+        return;
+    }
 }

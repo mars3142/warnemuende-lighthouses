@@ -6,65 +6,88 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "inttypes.h"
+#include "led_strip.h"
+#include "sdkconfig.h"
 
 static const char *TAG = "beacon";
 
 typedef struct
 {
-    uint32_t tick;
-} timer_event_t;
+    uint32_t count;
+    uint32_t alarm;
+} TimerEvent;
 
-static QueueHandle_t timer_evt_queue = NULL;
-gptimer_handle_t gptimer = NULL;
-
-bool IRAM_ATTR timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
+typedef struct
 {
-    timer_event_t evt = {.tick = edata->count_value};
+    led_strip_handle_t ledStrip;
+    uint32_t size;
+} LedMatrix;
 
-    BaseType_t high_task_wakeup = pdFALSE;
-    xQueueSendFromISR(timer_evt_queue, &evt, &high_task_wakeup);
+static LedMatrix ledMatrix = {.size = 64};
+static QueueHandle_t timerEvtQueue = NULL;
+gptimer_handle_t gpTimer = NULL;
 
-    return (high_task_wakeup == pdTRUE);
+bool IRAM_ATTR timerCallback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *userCtx)
+{
+    TimerEvent evt = {.count = edata->count_value, .alarm = edata->alarm_value};
+    BaseType_t highTaskWakeup = pdFALSE;
+    xQueueSendFromISR(timerEvtQueue, &evt, &highTaskWakeup);
+
+    return (highTaskWakeup == pdTRUE);
 }
 
-void timer_event_task(void *arg)
+void timerEventTask(void *arg)
 {
-    timer_event_t evt;
+    TimerEvent evt;
     while (true)
     {
-        if (xQueueReceive(timer_evt_queue, &evt, portMAX_DELAY))
+        if (xQueueReceive(timerEvtQueue, &evt, portMAX_DELAY))
         {
             static bool level = false;
             level = !level;
-            gpio_set_level(CONFIG_WLED_DIN_PIN, level);
-            ESP_LOGI(TAG, "Timer Event: count = %" PRIu32 ", GPIO now %s", evt.tick, level ? "HIGH" : "LOW");
+            if (ledMatrix.ledStrip)
+            {
+                for (uint32_t i = 0; i < ledMatrix.size; i++)
+                {
+                    led_strip_set_pixel(ledMatrix.ledStrip, i, 0, (level) ? 100 : 0, 0);
+                }
+                led_strip_refresh(ledMatrix.ledStrip);
+            }
+            ESP_LOGI(TAG, "Timer Event: count = %" PRIu32 ", alarm = %" PRIu32 ", GPIO now %s", evt.count, evt.alarm,
+                     level ? "HIGH" : "LOW");
         }
     }
 }
 
-esp_err_t wled_init(void)
+esp_err_t initWled(void)
 {
-    gpio_config_t io_conf = {.pin_bit_mask = (1ULL << CONFIG_WLED_DIN_PIN),
-                             .mode = GPIO_MODE_OUTPUT,
-                             .pull_up_en = GPIO_PULLUP_DISABLE,
-                             .pull_down_en = GPIO_PULLDOWN_DISABLE,
-                             .intr_type = GPIO_INTR_DISABLE};
-    esp_err_t ret = gpio_config(&io_conf);
-    if (ret != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to configure GPIO: %s", esp_err_to_name(ret));
-    }
-    return ret;
+    led_strip_config_t stripConfig = {.strip_gpio_num = CONFIG_WLED_DIN_PIN,
+                                      .max_leds = ledMatrix.size,
+                                      .led_model = LED_MODEL_WS2812,
+                                      .color_component_format = LED_STRIP_COLOR_COMPONENT_FMT_RGB,
+                                      .flags = {
+                                          .invert_out = false,
+                                      }};
+
+    led_strip_rmt_config_t rmtConfig = {.clk_src = RMT_CLK_SRC_DEFAULT,
+                                        .resolution_hz = 0,
+                                        .mem_block_symbols = 0,
+                                        .flags = {
+                                            .with_dma = true,
+                                        }};
+    ESP_ERROR_CHECK(led_strip_new_rmt_device(&stripConfig, &rmtConfig, &ledMatrix.ledStrip));
+
+    return ESP_OK;
 }
 
-esp_err_t beacon_start(void)
+esp_err_t startBeacon(void)
 {
-    if (gptimer == NULL)
+    if (gpTimer == NULL)
     {
         ESP_LOGE(TAG, "GPTimer not initialized");
         return ESP_ERR_INVALID_STATE;
     }
-    esp_err_t ret = gptimer_start(gptimer);
+    esp_err_t ret = gptimer_start(gpTimer);
     if (ret != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to start gptimer: %s", esp_err_to_name(ret));
@@ -76,14 +99,14 @@ esp_err_t beacon_start(void)
     return ret;
 }
 
-esp_err_t beacon_stop(void)
+esp_err_t stopBeacon(void)
 {
-    if (gptimer == NULL)
+    if (gpTimer == NULL)
     {
         ESP_LOGE(TAG, "GPTimer not initialized");
         return ESP_ERR_INVALID_STATE;
     }
-    esp_err_t ret = gptimer_stop(gptimer);
+    esp_err_t ret = gptimer_stop(gpTimer);
     if (ret != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to stop gptimer: %s", esp_err_to_name(ret));
@@ -95,86 +118,77 @@ esp_err_t beacon_stop(void)
     return ret;
 }
 
-esp_err_t beacon_init(void)
+esp_err_t initBeacon(void)
 {
     esp_err_t ret = ESP_OK;
-
-    timer_evt_queue = xQueueCreate(10, sizeof(timer_event_t));
-    if (timer_evt_queue == NULL)
+    timerEvtQueue = xQueueCreate(10, sizeof(TimerEvent));
+    if (timerEvtQueue == NULL)
     {
         ESP_LOGE(TAG, "Failed to create timer event queue");
         ret = ESP_ERR_NO_MEM;
         goto exit;
     }
 
-    gptimer_config_t timer_config = {
-        .clk_src = GPTIMER_CLK_SRC_DEFAULT,
-        .direction = GPTIMER_COUNT_UP,
-        .resolution_hz = 1000000, // 1 MHz = 1 µs
-    };
-    ret = gptimer_new_timer(&timer_config, &gptimer);
+    gptimer_config_t timerConfig = {
+        .clk_src = GPTIMER_CLK_SRC_DEFAULT, .direction = GPTIMER_COUNT_UP, .resolution_hz = 1000000};
+    ret = gptimer_new_timer(&timerConfig, &gpTimer);
     if (ret != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to create new gptimer: %s", esp_err_to_name(ret));
-        goto cleanup_queue;
+        goto cleanupQueue;
     }
 
-    gptimer_event_callbacks_t callbacks = {
-        .on_alarm = timer_callback,
-    };
-    ret = gptimer_register_event_callbacks(gptimer, &callbacks, NULL);
+    gptimer_event_callbacks_t callbacks = {.on_alarm = timerCallback};
+    ret = gptimer_register_event_callbacks(gpTimer, &callbacks, NULL);
     if (ret != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to register timer callbacks: %s", esp_err_to_name(ret));
-        goto cleanup_timer;
+        goto cleanupTimer;
     }
 
-    ret = gptimer_enable(gptimer);
+    ret = gptimer_enable(gpTimer);
     if (ret != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to enable gptimer: %s", esp_err_to_name(ret));
-        goto cleanup_timer; // Timer created but not enabled, can be deleted.
+        goto cleanupTimer;
     }
 
-    gptimer_alarm_config_t alarm_config = {
-        .alarm_count = 2000000, // 2.000.000 µs = 2 secs
-        .reload_count = 0,
-        .flags.auto_reload_on_alarm = true,
-    };
-    ret = gptimer_set_alarm_action(gptimer, &alarm_config);
+    gptimer_alarm_config_t alarmConfig = {
+        .alarm_count = 2000000, .reload_count = 0, .flags.auto_reload_on_alarm = true};
+    ret = gptimer_set_alarm_action(gpTimer, &alarmConfig);
     if (ret != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to set gptimer alarm action: %s", esp_err_to_name(ret));
-        goto cleanup_enabled_timer; // Timer is enabled, disable before deleting.
+        goto cleanupEnabledTimer;
     }
 
-    BaseType_t task_created = xTaskCreate(timer_event_task, "timer_event_task", 4096, NULL, 10, NULL);
-    if (task_created != pdPASS)
+    BaseType_t taskCreated = xTaskCreate(timerEventTask, "timer_event_task", 4096, NULL, 10, NULL);
+    if (taskCreated != pdPASS)
     {
         ESP_LOGE(TAG, "Failed to create timer event task");
-        ret = ESP_ERR_NO_MEM; // Task creation often fails due to insufficient memory
-        goto cleanup_enabled_timer;
+        ret = ESP_ERR_NO_MEM;
+        goto cleanupEnabledTimer;
     }
 
     ESP_LOGI(TAG, "Beacon module initialized.");
     goto exit;
 
-cleanup_enabled_timer:
-    if (gptimer)
+cleanupEnabledTimer:
+    if (gpTimer)
     {
-        gptimer_disable(gptimer); // Attempt to disable
+        gptimer_disable(gpTimer);
     }
-cleanup_timer:
-    if (gptimer)
+cleanupTimer:
+    if (gpTimer)
     {
-        gptimer_del_timer(gptimer);
-        gptimer = NULL;
+        gptimer_del_timer(gpTimer);
+        gpTimer = NULL;
     }
-cleanup_queue:
-    if (timer_evt_queue)
+cleanupQueue:
+    if (timerEvtQueue)
     {
-        vQueueDelete(timer_evt_queue);
-        timer_evt_queue = NULL;
+        vQueueDelete(timerEvtQueue);
+        timerEvtQueue = NULL;
     }
 exit:
     return ret;
