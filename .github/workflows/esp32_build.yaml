@@ -39,6 +39,7 @@ jobs:
         with:
           esp_idf_version: ${{ matrix.idf_ver }}
           target: ${{ matrix.idf_target }}
+          extra_docker_args: -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.release"
       - name: Archive build output artifacts
         uses: actions/upload-artifact@v4
         with:

@@ -6,3 +6,4 @@ sdkconfig.old
 .espidf.*.json
 *.svd
 *.lock
+build-release/
