@@ -5,7 +5,7 @@
 void app_main(void)
 {
     /// init persistence
-    persistence_init("beacon");
+    persistence_init("lighthouse");
 
     /// init WLED
     if (wled_init() != ESP_OK)
