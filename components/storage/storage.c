@@ -14,7 +14,7 @@ static char s_current_filename[256] = {0}; // Buffer to store the current filena
 
 esp_err_t storage_init(void)
 {
-    ESP_LOGI(TAG, "Initializing SPIFFS");
+    ESP_LOGI(TAG, "Initializing Storage");
 
     esp_vfs_spiffs_conf_t conf = {
         .base_path = "/storage",       // Path where the filesystem will be mounted
