@@ -1,9 +1,20 @@
 menu "Warnemuende Lighthouse"
     config WLED_DIN_PIN
         int "WLED Data In Pin"
-        default 14
+        default 8
         help
             The number of the WLED data in pin.
+
+    config WLED_USE_DMA
+        bool "Use DMA for WLED"
+        default n
+        help
+            Use DMA to drive the WLED strip. This is more efficient and allows for smoother animations.
+
+    config WLED_DMA_USAGE
+        int
+        default 1 if WLED_USE_DMA
+        default 0 if !WLED_USE_DMA
 
     choice LIGHT_CHARACTERISTIC_CHOICE
         prompt "Light characteristic"

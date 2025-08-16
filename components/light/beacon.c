@@ -14,8 +14,7 @@ static const char *TAG = "beacon";
 static SemaphoreHandle_t timer_semaphore;
 gptimer_handle_t gptimer = NULL;
 
-static const uint32_t value = 10;
-static const uint32_t mod = 2;
+static const uint32_t value = 200;
 
 static bool IRAM_ATTR beacon_timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata,
                                             void *userCtx)
@@ -43,10 +42,7 @@ static void beacon_timer_event_task(void *arg)
             {
                 for (uint32_t i = 0; i < led_matrix.size; i++)
                 {
-                    if (i % mod == 0)
-                    {
-                        led_strip_set_pixel(led_matrix.led_strip, i, 0, (level) ? value : 0, 0);
-                    }
+                    led_strip_set_pixel(led_matrix.led_strip, i, 0, (level) ? value : 0, 0);
                 }
                 led_strip_refresh(led_matrix.led_strip);
             }
