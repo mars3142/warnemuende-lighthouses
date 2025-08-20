@@ -1,0 +1,47 @@
+{
+  "idf.cwd": "${workspaceFolder}/firmware",
+  "idf.sdkconfigFilePath": "${workspaceFolder}/firmware/sdkconfig",
+  "idf.buildPath": "${workspaceFolder}/firmware/build",
+  "idf.openOcdConfigs": [
+    "board/esp32h2-builtin.cfg"
+  ],
+  "idf.customExtraVars": {
+    "OPENOCD_SCRIPTS": "/Users/siegmund/.espressif/tools/openocd-esp32/v0.12.0-esp32-20240821/openocd-esp32/share/openocd/scripts",
+    "ESP_ROM_ELF_DIR": "/Users/siegmund/.espressif/tools/esp-rom-elfs/20230320/",
+    "IDF_TARGET": "esp32h2"
+  },
+  "idf.flashType": "UART",
+  "files.associations": {
+    "led_strip.h": "c",
+    "led_matrix.h": "c",
+    "stdint.h": "c",
+    "freertos.h": "c",
+    "format": "c",
+    "thread": "c",
+    "sdkconfig.h": "c",
+    "task.h": "c",
+    "remote_control.h": "c",
+    "ble_svc_gap.h": "c",
+    "ble_svc_gatt.h": "c",
+    "nimble_port.h": "c",
+    "nimble_port_freertos.h": "c",
+    "esp_nimble_hci.h": "c",
+    "led_service.h": "c",
+    "device_service.h": "c",
+    "ble_hs.h": "c",
+    "esp_spiffs.h": "c",
+    "esp_log.h": "c",
+    "types.h": "c",
+    "gptimer.h": "c",
+    "gpio.h": "c",
+    "beacon.h": "c",
+    "persistence.h": "c",
+    "light.h": "c",
+    "outdoor.h": "c",
+    "inttypes.h": "c"
+  },
+  "idf.port": "/dev/tty.usbmodem2101",
+  "idf.espIdfPath": "/Users/siegmund/esp/v5.5/esp-idf",
+  "idf.toolsPath": "/Users/siegmund/.espressif",
+  "idf.pythonInstallPath": "/opt/homebrew/bin/python3"
+}
