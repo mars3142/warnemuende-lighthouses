@@ -96,7 +96,10 @@ esp_err_t beacon_init(void)
     timer_semaphore = xSemaphoreCreateBinary();
 
     gptimer_config_t timer_config = {
-        .clk_src = GPTIMER_CLK_SRC_DEFAULT, .direction = GPTIMER_COUNT_UP, .resolution_hz = 1000000};
+        .clk_src = GPTIMER_CLK_SRC_DEFAULT,
+        .direction = GPTIMER_COUNT_UP,
+        .resolution_hz = 1000000,
+    };
     ret = gptimer_new_timer(&timer_config, &gptimer);
     if (ret != ESP_OK)
     {
@@ -120,7 +123,10 @@ esp_err_t beacon_init(void)
     }
 
     gptimer_alarm_config_t alarm_config = {
-        .alarm_count = 2000000, .reload_count = 0, .flags.auto_reload_on_alarm = true};
+        .alarm_count = 2000000,
+        .reload_count = 0,
+        .flags.auto_reload_on_alarm = true,
+    };
     ret = gptimer_set_alarm_action(gptimer, &alarm_config);
     if (ret != ESP_OK)
     {

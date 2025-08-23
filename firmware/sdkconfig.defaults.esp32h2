@@ -1,2 +1,5 @@
 # default ESP target
 CONFIG_IDF_TARGET="esp32h2"
+
+# ESP System Settings
+CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_48=y
