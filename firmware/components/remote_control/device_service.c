@@ -3,21 +3,48 @@
 #include <stdio.h>
 #include <string.h>
 
-int device_model_number_read(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
+int device_name_read(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
-    char model_number_str[65];
+    char firmware_revision_str[33];
     const esp_app_desc_t *app_desc = esp_app_get_description();
 
-    if (app_desc->project_name[0] != '\0' && app_desc->version[0] != '\0')
+    if (app_desc->project_name[0] != '\0')
     {
-        snprintf(model_number_str, sizeof(model_number_str), "%s v%s", app_desc->project_name, app_desc->version);
+        snprintf(firmware_revision_str, sizeof(firmware_revision_str), "%s", app_desc->project_name);
     }
     else
     {
-        snprintf(model_number_str, sizeof(model_number_str), "undefined");
+        snprintf(firmware_revision_str, sizeof(firmware_revision_str), "undefined");
     }
 
-    os_mbuf_append(ctxt->om, model_number_str, strlen(model_number_str));
+    os_mbuf_append(ctxt->om, firmware_revision_str, strlen(firmware_revision_str));
+    return 0;
+}
+
+int device_firmware_revision_read(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
+                                  void *arg)
+{
+    char firmware_revision_str[33];
+    const esp_app_desc_t *app_desc = esp_app_get_description();
+
+    if (app_desc->version[0] != '\0')
+    {
+        snprintf(firmware_revision_str, sizeof(firmware_revision_str), "%s", app_desc->version);
+    }
+    else
+    {
+        snprintf(firmware_revision_str, sizeof(firmware_revision_str), "undefined");
+    }
+
+    os_mbuf_append(ctxt->om, firmware_revision_str, strlen(firmware_revision_str));
+    return 0;
+}
+
+int device_hardware_revision_read(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
+                                  void *arg)
+{
+    char *hardware_revision = "rev1";
+    os_mbuf_append(ctxt->om, hardware_revision, strlen(hardware_revision));
     return 0;
 }
 

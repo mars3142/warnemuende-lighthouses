@@ -1,7 +1,6 @@
 #include "persistence.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "esp_mac.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "nvs_flash.h"

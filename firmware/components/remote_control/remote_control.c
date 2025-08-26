@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "capability_service.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -11,7 +10,7 @@
 #include "host/ble_sm.h"
 #include "host/ble_uuid.h"
 #include "include/device_service.h"
-#include "include/led_service.h"
+#include "include/light_service.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "sdkconfig.h"
@@ -20,10 +19,11 @@
 
 static const char *TAG = "remote_control";
 
+// static const ble_uuid128_t capability_service_uuid =
+//     BLE_UUID128_INIT(0x91, 0xB6, 0xCA, 0x95, 0xB2, 0xC6, 0x7B, 0x90, 0x31, 0x45, 0x77, 0xE6, 0x67, 0x10, 0x68, 0xB9);
+
 static const ble_uuid16_t device_service_uuid = BLE_UUID16_INIT(0x180A);
-static const ble_uuid128_t capability_service_uuid =
-    BLE_UUID128_INIT(0x91, 0xB6, 0xCA, 0x95, 0xB2, 0xC6, 0x7B, 0x90, 0x31, 0x45, 0x77, 0xE6, 0x67, 0x10, 0x68, 0xB9);
-static const ble_uuid16_t led_service_uuid = BLE_UUID16_INIT(0x1007);
+static const ble_uuid16_t light_service_uuid = BLE_UUID16_INIT(0xA000);
 
 uint8_t ble_addr_type;
 
@@ -39,57 +39,63 @@ static struct ble_gatt_dsc_def char_0xA000_descs[] = {{
                                                       },
                                                       {0}};
 
-static struct ble_gatt_dsc_def char_0xDEAD_descs[] = {{
-                                                          .uuid = BLE_UUID16_DECLARE(0x2901),
-                                                          .att_flags = BLE_ATT_F_WRITE,
-                                                          .access_cb = led_char_dead_user_desc,
-                                                      },
-                                                      {0}};
-
-static struct ble_gatt_dsc_def char_0x1979_desc[] = {{
-                                                         .uuid = BLE_UUID16_DECLARE(0x2901),
-                                                         .att_flags = BLE_ATT_F_READ,
-                                                         .access_cb = capa_char_1979_user_desc,
-                                                     },
-                                                     {0}};
+static struct ble_gatt_dsc_def char_0xDEAD_descs[] = {
+    {
+        .uuid = BLE_UUID16_DECLARE(0x2901),
+        .att_flags = BLE_ATT_F_WRITE,
+        .access_cb = led_char_dead_user_desc,
+    },
+    {
+        .uuid = BLE_UUID16_DECLARE(0x2904), // Presentation Format (optional, empfehlenswert)
+        .att_flags = BLE_ATT_F_READ,
+        .access_cb = led_char_dead_presentation,
+    },
+    {
+        .uuid = BLE_UUID16_DECLARE(0x2906), // Valid Range
+        .att_flags = BLE_ATT_F_READ,
+        .access_cb = led_char_dead_valid_range,
+    },
+    {0}};
 
 // Array of pointers to other service definitions
 static const struct ble_gatt_svc_def gatt_svcs[] = {
     {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = &device_service_uuid.u,
-        .characteristics = (struct ble_gatt_chr_def[]){{.uuid = BLE_UUID16_DECLARE(0x2A24),
-                                                        .flags = BLE_GATT_CHR_F_READ,
-                                                        .access_cb = device_model_number_read},
-                                                       {.uuid = BLE_UUID16_DECLARE(0x2A29),
-                                                        .flags = BLE_GATT_CHR_F_READ,
-                                                        .access_cb = device_manufacturer_read},
-                                                       {0}},
-    },
-    {
-        .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = &capability_service_uuid.u,
         .characteristics = (struct ble_gatt_chr_def[]){{
-                                                           .uuid = BLE_UUID16_DECLARE(0x1979),
-                                                           .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_NOTIFY,
-                                                           .access_cb = capa_read,
-                                                           .val_handle = &g_capa_char_val_handle,
-                                                           .descriptors = char_0x1979_desc,
+                                                           .uuid = BLE_UUID16_DECLARE(0x2A29),
+                                                           .flags = BLE_GATT_CHR_F_READ,
+                                                           .access_cb = device_manufacturer_read,
+                                                       },
+                                                       {
+                                                           .uuid = BLE_UUID16_DECLARE(0x2A27),
+                                                           .flags = BLE_GATT_CHR_F_READ,
+                                                           .access_cb = device_hardware_revision_read,
+                                                       },
+                                                       {
+                                                           .uuid = BLE_UUID16_DECLARE(0x2A26),
+                                                           .flags = BLE_GATT_CHR_F_READ,
+                                                           .access_cb = device_firmware_revision_read,
+                                                       },
+                                                       {
+                                                           .uuid = BLE_UUID16_DECLARE(0x2A00),
+                                                           .flags = BLE_GATT_CHR_F_READ,
+                                                           .access_cb = device_name_read,
                                                        },
                                                        {0}},
     },
     {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = &led_service_uuid.u,
+        .uuid = &light_service_uuid.u,
         .characteristics = (struct ble_gatt_chr_def[]){{
                                                            .uuid = BLE_UUID16_DECLARE(0xA000),
-                                                           .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_NOTIFY,
+                                                           .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
                                                            .access_cb = led_capabilities_read,
                                                            .descriptors = char_0xA000_descs,
                                                        },
                                                        {
                                                            .uuid = BLE_UUID16_DECLARE(0xDEAD),
-                                                           .flags = BLE_GATT_CHR_F_WRITE,
+                                                           .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
                                                            .access_cb = led_write,
                                                            .descriptors = char_0xDEAD_descs,
                                                        },
@@ -140,7 +146,7 @@ static int ble_gap_event(struct ble_gap_event *event, void *arg)
             {
                 ESP_LOGI(TAG, "Client subscribed to capability notifications. Sending data...");
                 // Call the function to send capability data via notifications
-                capa_notify_data(event->subscribe.conn_handle, g_capa_char_val_handle);
+                // capa_notify_data(event->subscribe.conn_handle, g_capa_char_val_handle);
             }
             else
             {
@@ -163,10 +169,15 @@ static void ble_app_advertise(void)
     // GAP - advertising definition
     struct ble_hs_adv_fields fields;
     memset(&fields, 0, sizeof(fields));
+    uint8_t mfg_data[] = {0xDE, 0xC0, 0x05, 0x10, 0x20, 0x25};
+    static const ble_uuid16_t services[] = {device_service_uuid, light_service_uuid};
+
     fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
-    fields.uuids128 = (ble_uuid128_t[]){capability_service_uuid};
-    fields.num_uuids128 = 1;
-    fields.uuids128_is_complete = 1;
+    fields.uuids16 = services;
+    fields.num_uuids16 = sizeof(services) / sizeof(services[0]);
+    fields.uuids16_is_complete = 1;
+    fields.mfg_data = mfg_data;
+    fields.mfg_data_len = sizeof(mfg_data);
 
     ret = ble_gap_adv_set_fields(&fields);
     if (ret != 0)

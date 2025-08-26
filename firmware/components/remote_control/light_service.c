@@ -1,6 +1,6 @@
-#include "include/led_service.h"
+#include "include/light_service.h"
 
-static const char *TAG = "led_service";
+static const char *TAG = "light_service";
 
 /// Capabilities of Device
 int led_capabilities_read(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
@@ -72,4 +72,40 @@ int led_char_dead_user_desc(uint16_t conn_handle, uint16_t attr_handle, struct b
     const char *desc = "Readable Data from Server";
     os_mbuf_append(ctxt->om, desc, strlen(desc));
     return 0;
+}
+
+int led_char_dead_presentation(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
+{
+    if (ctxt->op != BLE_GATT_ACCESS_OP_READ_DSC)
+    {
+        return BLE_ATT_ERR_READ_NOT_PERMITTED;
+    }
+
+    // GATT Presentation Format (0x2904), 7 Bytes:
+    // [format, exponent, unit(2), namespace, description(2)]
+    // format 0x04 = uint8, exponent 0, unit 0x2700 (unitless), namespace 1 (Bluetooth SIG Assigned Numbers),
+    // description 0
+    const uint8_t fmt[7] = {
+        0x04,       // format = uint8
+        0x00,       // exponent
+        0x00, 0x27, // unit = org.bluetooth.unit.unitless (0x2700)
+        0x01,       // namespace = 1 (SIG)
+        0x00, 0x00  // description
+    };
+    return os_mbuf_append(ctxt->om, fmt, sizeof(fmt)) == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
+}
+
+int led_char_dead_valid_range(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
+{
+    if (ctxt->op != BLE_GATT_ACCESS_OP_READ_DSC)
+    {
+        return BLE_ATT_ERR_READ_NOT_PERMITTED;
+    }
+
+    // Valid Range Descriptor (0x2906) Payload:
+    // - Für numerische Werte: [min .. max] im "nativen" Datentyp der Characteristic.
+    //   Hier: uint8, also 1 Byte min + 1 Byte max.
+    const uint8_t range[2] = {0x00, 0x01}; // min=0, max=1
+
+    return os_mbuf_append(ctxt->om, range, sizeof(range)) == 0 ? 0 : BLE_ATT_ERR_INSUFFICIENT_RES;
 }
