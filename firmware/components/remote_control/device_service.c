@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int device_name_read(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
+int device_name_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
     char firmware_revision_str[33];
     const esp_app_desc_t *app_desc = esp_app_get_description();
@@ -21,8 +21,8 @@ int device_name_read(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt
     return 0;
 }
 
-int device_firmware_revision_read(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
-                                  void *arg)
+int device_firmware_revision_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
+                                void *arg)
 {
     char firmware_revision_str[33];
     const esp_app_desc_t *app_desc = esp_app_get_description();
@@ -40,15 +40,15 @@ int device_firmware_revision_read(uint16_t conn_handle, uint16_t attr_handle, st
     return 0;
 }
 
-int device_hardware_revision_read(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
-                                  void *arg)
+int device_hardware_revision_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
+                                void *arg)
 {
     char *hardware_revision = "rev1";
     os_mbuf_append(ctxt->om, hardware_revision, strlen(hardware_revision));
     return 0;
 }
 
-int device_manufacturer_read(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
+int device_manufacturer_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg)
 {
     char *manufacturer = "mars3142";
     os_mbuf_append(ctxt->om, manufacturer, strlen(manufacturer));

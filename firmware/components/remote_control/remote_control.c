@@ -19,11 +19,9 @@
 
 static const char *TAG = "remote_control";
 
-// static const ble_uuid128_t capability_service_uuid =
-//     BLE_UUID128_INIT(0x91, 0xB6, 0xCA, 0x95, 0xB2, 0xC6, 0x7B, 0x90, 0x31, 0x45, 0x77, 0xE6, 0x67, 0x10, 0x68, 0xB9);
-
 static const ble_uuid16_t device_service_uuid = BLE_UUID16_INIT(0x180A);
 static const ble_uuid16_t light_service_uuid = BLE_UUID16_INIT(0xA000);
+static const ble_uuid16_t settings_service_uuid = BLE_UUID16_INIT(0xA999);
 
 uint8_t ble_addr_type;
 
@@ -32,32 +30,42 @@ static uint16_t g_capa_char_val_handle;
 
 static void ble_app_advertise(void);
 
-static struct ble_gatt_dsc_def char_0xA000_descs[] = {{
-                                                          .uuid = BLE_UUID16_DECLARE(0x2901),
-                                                          .att_flags = BLE_ATT_F_READ,
-                                                          .access_cb = led_char_a000_user_desc,
-                                                      },
-                                                      {0}};
+// Descriptors for the characteristics
+static struct ble_gatt_dsc_def led_char_desc[] = {{
+                                                      .uuid = BLE_UUID16_DECLARE(0x2901),
+                                                      .att_flags = BLE_ATT_F_READ,
+                                                      .access_cb = led_char_user_desc_cb,
+                                                  },
+                                                  {
+                                                      .uuid = BLE_UUID16_DECLARE(0x2904),
+                                                      .att_flags = BLE_ATT_F_READ,
+                                                      .access_cb = bool_char_presentation_cb,
+                                                  },
+                                                  {
+                                                      .uuid = BLE_UUID16_DECLARE(0x2906),
+                                                      .att_flags = BLE_ATT_F_READ,
+                                                      .access_cb = bool_char_valid_range_cb,
+                                                  },
+                                                  {0}};
 
-static struct ble_gatt_dsc_def char_0xDEAD_descs[] = {
-    {
-        .uuid = BLE_UUID16_DECLARE(0x2901),
-        .att_flags = BLE_ATT_F_WRITE,
-        .access_cb = led_char_dead_user_desc,
-    },
-    {
-        .uuid = BLE_UUID16_DECLARE(0x2904), // Presentation Format (optional, empfehlenswert)
-        .att_flags = BLE_ATT_F_READ,
-        .access_cb = led_char_dead_presentation,
-    },
-    {
-        .uuid = BLE_UUID16_DECLARE(0x2906), // Valid Range
-        .att_flags = BLE_ATT_F_READ,
-        .access_cb = led_char_dead_valid_range,
-    },
-    {0}};
+static struct ble_gatt_dsc_def beacon_char_desc[] = {{
+                                                         .uuid = BLE_UUID16_DECLARE(0x2901),
+                                                         .att_flags = BLE_ATT_F_READ,
+                                                         .access_cb = beacon_char_user_desc_cb,
+                                                     },
+                                                     {
+                                                         .uuid = BLE_UUID16_DECLARE(0x2904),
+                                                         .att_flags = BLE_ATT_F_READ,
+                                                         .access_cb = bool_char_presentation_cb,
+                                                     },
+                                                     {
+                                                         .uuid = BLE_UUID16_DECLARE(0x2906),
+                                                         .att_flags = BLE_ATT_F_READ,
+                                                         .access_cb = bool_char_valid_range_cb,
+                                                     },
+                                                     {0}};
 
-// Array of pointers to other service definitions
+// Array of pointers to service definitions
 static const struct ble_gatt_svc_def gatt_svcs[] = {
     {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
@@ -65,22 +73,22 @@ static const struct ble_gatt_svc_def gatt_svcs[] = {
         .characteristics = (struct ble_gatt_chr_def[]){{
                                                            .uuid = BLE_UUID16_DECLARE(0x2A29),
                                                            .flags = BLE_GATT_CHR_F_READ,
-                                                           .access_cb = device_manufacturer_read,
+                                                           .access_cb = device_manufacturer_cb,
                                                        },
                                                        {
                                                            .uuid = BLE_UUID16_DECLARE(0x2A27),
                                                            .flags = BLE_GATT_CHR_F_READ,
-                                                           .access_cb = device_hardware_revision_read,
+                                                           .access_cb = device_hardware_revision_cb,
                                                        },
                                                        {
                                                            .uuid = BLE_UUID16_DECLARE(0x2A26),
                                                            .flags = BLE_GATT_CHR_F_READ,
-                                                           .access_cb = device_firmware_revision_read,
+                                                           .access_cb = device_firmware_revision_cb,
                                                        },
                                                        {
                                                            .uuid = BLE_UUID16_DECLARE(0x2A00),
                                                            .flags = BLE_GATT_CHR_F_READ,
-                                                           .access_cb = device_name_read,
+                                                           .access_cb = device_name_cb,
                                                        },
                                                        {0}},
     },
@@ -88,18 +96,23 @@ static const struct ble_gatt_svc_def gatt_svcs[] = {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = &light_service_uuid.u,
         .characteristics = (struct ble_gatt_chr_def[]){{
-                                                           .uuid = BLE_UUID16_DECLARE(0xA000),
+                                                           .uuid = BLE_UUID16_DECLARE(0xBEA0),
                                                            .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
-                                                           .access_cb = led_capabilities_read,
-                                                           .descriptors = char_0xA000_descs,
+                                                           .access_cb = beacon_cb,
+                                                           .descriptors = beacon_char_desc,
                                                        },
                                                        {
-                                                           .uuid = BLE_UUID16_DECLARE(0xDEAD),
+                                                           .uuid = BLE_UUID16_DECLARE(0xF037),
                                                            .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
-                                                           .access_cb = led_write,
-                                                           .descriptors = char_0xDEAD_descs,
+                                                           .access_cb = led_cb,
+                                                           .descriptors = led_char_desc,
                                                        },
                                                        {0}},
+    },
+    {
+        .type = BLE_GATT_SVC_TYPE_PRIMARY,
+        .uuid = &settings_service_uuid.u,
+        .characteristics = (struct ble_gatt_chr_def[]){{0}},
     },
     {0}};
 
@@ -170,7 +183,7 @@ static void ble_app_advertise(void)
     struct ble_hs_adv_fields fields;
     memset(&fields, 0, sizeof(fields));
     uint8_t mfg_data[] = {0xDE, 0xC0, 0x05, 0x10, 0x20, 0x25};
-    static const ble_uuid16_t services[] = {device_service_uuid, light_service_uuid};
+    static const ble_uuid16_t services[] = {device_service_uuid, light_service_uuid, settings_service_uuid};
 
     fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
     fields.uuids16 = services;

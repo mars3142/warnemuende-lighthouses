@@ -28,24 +28,27 @@ static bool IRAM_ATTR beacon_timer_callback(gptimer_handle_t timer, const gptime
     return true;
 }
 
+static void led_refresh(uint32_t brightness)
+{
+    LedMatrix_t led_matrix = get_led_matrix();
+
+    for (uint32_t i = 0; i < led_matrix.size; i++)
+    {
+        led_strip_set_pixel(led_matrix.led_strip, i, 0, brightness, 0);
+    }
+    led_strip_refresh(led_matrix.led_strip);
+}
+
 static void beacon_timer_event_task(void *arg)
 {
     while (true)
     {
         if (xSemaphoreTake(timer_semaphore, portMAX_DELAY))
         {
-            LedMatrix_t led_matrix = get_led_matrix();
 
             static bool level = false;
             level = !level;
-            if (led_matrix.led_strip)
-            {
-                for (uint32_t i = 0; i < led_matrix.size; i++)
-                {
-                    led_strip_set_pixel(led_matrix.led_strip, i, 0, (level) ? value : 0, 0);
-                }
-                led_strip_refresh(led_matrix.led_strip);
-            }
+            led_refresh(level ? value : 0);
             ESP_LOGD(TAG, "Timer Event, LED now %s", level ? "ON" : "OFF");
         }
     }
@@ -58,7 +61,21 @@ esp_err_t beacon_start(void)
         ESP_LOGE(TAG, "GPTimer not initialized");
         return ESP_ERR_INVALID_STATE;
     }
-    esp_err_t ret = gptimer_start(gptimer);
+    esp_err_t ret = gptimer_enable(gptimer);
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to enable gptimer: %s", esp_err_to_name(ret));
+        return beacon_stop();
+    }
+
+    ret = gptimer_set_raw_count(gptimer, 0);
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to set gptimer raw count: %s", esp_err_to_name(ret));
+        return beacon_stop();
+    }
+
+    ret = gptimer_start(gptimer);
     if (ret != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to start gptimer: %s", esp_err_to_name(ret));
@@ -72,6 +89,7 @@ esp_err_t beacon_start(void)
 
 esp_err_t beacon_stop(void)
 {
+    led_refresh(0);
     if (gptimer == NULL)
     {
         ESP_LOGE(TAG, "GPTimer not initialized");
@@ -85,6 +103,12 @@ esp_err_t beacon_stop(void)
     else
     {
         ESP_LOGI(TAG, "GPTimer stopped.");
+    }
+
+    ret = gptimer_disable(gptimer);
+    if (ret != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to enable gptimer: %s", esp_err_to_name(ret));
     }
     return ret;
 }
@@ -112,13 +136,6 @@ esp_err_t beacon_init(void)
     if (ret != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to register timer callbacks: %s", esp_err_to_name(ret));
-        goto cleanupTimer;
-    }
-
-    ret = gptimer_enable(gptimer);
-    if (ret != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to enable gptimer: %s", esp_err_to_name(ret));
         goto cleanupTimer;
     }
 
