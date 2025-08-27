@@ -3,11 +3,11 @@ name: ESP-IDF Build
 on:
   push:
     paths:
-      - bootloader_components/**
-      - components/**
-      - main/**
+      - "firmware/**"
+      - ".github/workflows/esp32_build.yml"
   pull_request:
   merge_group:
+  workflow_dispatch:
   schedule:
     - cron: "0 5 * * 3"
 
@@ -28,28 +28,18 @@ jobs:
           [esp32, esp32c3, esp32c5, esp32c6, esp32h2, esp32p4, esp32s3]
 
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
           submodules: "recursive"
+
       - name: ESP-IDF build
         uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: ${{ matrix.idf_ver }}
           target: ${{ matrix.idf_target }}
+          path: firmware
           command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.release" build
-      - name: Prepare binary files
-        run: |
-          mkdir -p build-release
-          cp build/flasher_args.json build-release/
-          cp build/*.bin build-release/
-          cp build/bootloader/*.bin build-release/
-          cp build/partition_table/*.bin build-release/
-      - name: Archive build output artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: lighthouses-${{ matrix.idf_target }}-${{ matrix.idf_ver }}
-          path: |
-            build-release/*.*
