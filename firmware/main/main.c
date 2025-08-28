@@ -27,11 +27,6 @@ void app_main(void)
     }
 
     /// start outdoor light service
-    if (outdoor_init() != ESP_OK)
-    {
-        printf("Failed to initialize outdoor");
-        return;
-    }
     if (outdoor_start() != ESP_OK)
     {
         printf("Failed to start outdoor");

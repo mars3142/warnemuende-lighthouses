@@ -15,26 +15,4 @@ menu "Warnemuende Lighthouse"
         int
         default 1 if WLED_USE_DMA
         default 0 if !WLED_USE_DMA
-
-    choice LIGHT_CHARACTERISTIC_CHOICE
-        prompt "Light characteristic"
-        default LIGHT_CHARACTERISTIC_GREEN
-        help
-            The color of the main WLED light.
-
-        config LIGHT_CHARACTERISTIC_GREEN
-            bool "Green flashing light"
-            help
-                The light will be flashing green.
-
-        config LIGHT_CHARACTERISTIC_RED
-            bool "Red flashing light"
-            help
-                The light will be flashing red.
-    endchoice
-
-    config LIGHT_CHARACTERISTIC_VALUE
-        int
-        default 1 if LIGHT_CHARACTERISTIC_GREEN
-        default 2 if LIGHT_CHARACTERISTIC_RED
 endmenu
