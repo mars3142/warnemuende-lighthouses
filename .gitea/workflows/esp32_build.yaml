@@ -3,8 +3,8 @@ name: ESP-IDF Build
 on:
   push:
     paths:
+      - ".gitea/workflows/**"
       - "firmware/**"
-      - ".github/workflows/esp32_build.yml"
   pull_request:
   merge_group:
   workflow_dispatch:
@@ -36,8 +36,11 @@ jobs:
         with:
           submodules: "recursive"
 
+      - name: Debug Workspace Layout
+        run: ls -laR ${{ gitea.workspace }}
+
       - name: ESP-IDF build
-        uses: espressif/esp-idf-ci-action@v1
+        uses: https://git.mars3142.dev/mars3142/esp-idf-ci-action@v1
         with:
           esp_idf_version: ${{ matrix.idf_ver }}
           target: ${{ matrix.idf_target }}
