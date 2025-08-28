@@ -36,13 +36,10 @@ jobs:
         with:
           submodules: "recursive"
 
-      - name: Debug Workspace Layout
-        run: ls -laR ${{ gitea.workspace }}
-
       - name: ESP-IDF build
-        uses: https://git.mars3142.dev/mars3142/esp-idf-ci-action@v1
+        uses: espressif/esp-idf-ci-action@v1
         with:
           esp_idf_version: ${{ matrix.idf_ver }}
           target: ${{ matrix.idf_target }}
           path: firmware
-          command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.release" build
+          command: idf.py -DSDKCONFIG_DEFAULTS="sdkconfig.defaults;sdkconfig.release" build && cd build && esptool.py --chip ${{ matrix.idf_target }} merge_bin -o release-${{ matrix.idf_target }}.bin @flash_args
