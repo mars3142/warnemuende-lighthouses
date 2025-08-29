@@ -7,4 +7,5 @@ idf_component_register(SRCS
                         esp_driver_gpio
                         esp_driver_gptimer
                         esp_driver_ledc
+                        persistence
                     )

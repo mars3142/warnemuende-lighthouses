@@ -11,6 +11,7 @@
 #include "host/ble_hs.h"
 #include "host/ble_sm.h"
 #include "host/ble_uuid.h"
+#include "include/char_desc.h"
 #include "include/device_service.h"
 #include "include/light_service.h"
 #include "include/uart_service.h"
@@ -30,41 +31,48 @@ uint8_t ble_addr_type;
 
 static void ble_app_advertise(void);
 
-// Descriptors for the characteristics
-static struct ble_gatt_dsc_def led_char_desc[] = {
+// Descriptors for the Beacon Characteristic
+static struct ble_gatt_dsc_def beacon_char_desc[] = {
     {
+        // User Description Descriptor
         .uuid = BLE_UUID16_DECLARE(0x2901),
         .att_flags = BLE_ATT_F_READ,
-        .access_cb = led_char_user_desc_cb,
+        .access_cb = gatt_svr_desc_beacon_user_desc_access,
     },
     {
+        // Presentation Format Descriptor
         .uuid = BLE_UUID16_DECLARE(0x2904),
         .att_flags = BLE_ATT_F_READ,
-        .access_cb = bool_char_presentation_cb,
+        .access_cb = gatt_svr_desc_presentation_bool_access,
     },
     {
+        // Valid Range Descriptor
         .uuid = BLE_UUID16_DECLARE(0x2906),
         .att_flags = BLE_ATT_F_READ,
-        .access_cb = bool_char_valid_range_cb,
+        .access_cb = gatt_svr_desc_valid_range_bool_access,
     },
     {0},
 };
 
-static struct ble_gatt_dsc_def beacon_char_desc[] = {
+// Descriptors for the LED Characteristic
+static struct ble_gatt_dsc_def led_char_desc[] = {
     {
+        // User Description Descriptor
         .uuid = BLE_UUID16_DECLARE(0x2901),
         .att_flags = BLE_ATT_F_READ,
-        .access_cb = beacon_char_user_desc_cb,
+        .access_cb = gatt_svr_desc_led_user_desc_access,
     },
     {
+        // Presentation Format Descriptor
         .uuid = BLE_UUID16_DECLARE(0x2904),
         .att_flags = BLE_ATT_F_READ,
-        .access_cb = bool_char_presentation_cb,
+        .access_cb = gatt_svr_desc_presentation_bool_access,
     },
     {
+        // Valid Range Descriptor
         .uuid = BLE_UUID16_DECLARE(0x2906),
         .att_flags = BLE_ATT_F_READ,
-        .access_cb = bool_char_valid_range_cb,
+        .access_cb = gatt_svr_desc_valid_range_bool_access,
     },
     {0},
 };
@@ -72,54 +80,63 @@ static struct ble_gatt_dsc_def beacon_char_desc[] = {
 // Array of pointers to service definitions
 static const struct ble_gatt_svc_def gatt_svcs[] = {
     {
+        // Device Information Service
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = &gatt_svr_svc_device_uuid.u,
         .characteristics =
             (struct ble_gatt_chr_def[]){
                 {
+                    // Manufacturer String
                     .uuid = BLE_UUID16_DECLARE(0x2A29),
                     .flags = BLE_GATT_CHR_F_READ,
-                    .access_cb = device_manufacturer_cb,
+                    .access_cb = gatt_svr_chr_device_manufacturer_access,
                 },
                 {
+                    // Hardware Revision String
                     .uuid = BLE_UUID16_DECLARE(0x2A27),
                     .flags = BLE_GATT_CHR_F_READ,
-                    .access_cb = device_hardware_revision_cb,
+                    .access_cb = gatt_svr_chr_device_hardware_access,
                 },
                 {
+                    // Firmware Revision String
                     .uuid = BLE_UUID16_DECLARE(0x2A26),
                     .flags = BLE_GATT_CHR_F_READ,
-                    .access_cb = device_firmware_revision_cb,
+                    .access_cb = gatt_svr_chr_device_firmware_access,
                 },
                 {
+                    // Device Name
                     .uuid = BLE_UUID16_DECLARE(0x2A00),
                     .flags = BLE_GATT_CHR_F_READ,
-                    .access_cb = device_name_cb,
+                    .access_cb = gatt_svr_chr_device_name_access,
                 },
                 {0},
             },
     },
     {
+        // Light Service
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = &gatt_svr_svc_light_uuid.u,
         .characteristics =
             (struct ble_gatt_chr_def[]){
                 {
+                    // Beacon Characteristic
                     .uuid = BLE_UUID16_DECLARE(0xBEA0),
                     .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
-                    .access_cb = beacon_cb,
+                    .access_cb = gatt_svr_chr_light_beacon_access,
                     .descriptors = beacon_char_desc,
                 },
                 {
+                    // LED Characteristic
                     .uuid = BLE_UUID16_DECLARE(0xF037),
                     .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
-                    .access_cb = led_cb,
+                    .access_cb = gatt_svr_chr_light_led_access,
                     .descriptors = led_char_desc,
                 },
                 {0},
             },
     },
     {
+        // UART Service
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = &gatt_svr_svc_uart_uuid.u,
         .characteristics =
@@ -140,6 +157,7 @@ static const struct ble_gatt_svc_def gatt_svcs[] = {
                 {0},
             },
     },
+    // Settings Service (empty for now)
     {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = &gatt_svr_svc_settings_uuid.u,
@@ -254,22 +272,6 @@ static void ble_app_on_sync(void)
     // Start Advertising
     ble_hs_id_infer_auto(0, &ble_addr_type); // Determines the best address type automatically
     ble_app_advertise();
-}
-
-static void uart_tx_task(void *param)
-{
-    char buffer[50];
-    int count = 0;
-    while (1)
-    {
-        vTaskDelay(pdMS_TO_TICKS(2000));
-        if (conn_handle != 0)
-        {
-            ESP_LOGI(TAG, "Sending data over BLE UART TX");
-            sprintf(buffer, "Hello World #%d", count++);
-            send_ble_data(buffer);
-        }
-    }
 }
 
 // The infinite task

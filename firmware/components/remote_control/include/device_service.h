@@ -4,15 +4,17 @@
 #include <stdio.h>
 
 // 0x2A00 - Device Name
-int device_name_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg);
+int gatt_svr_chr_device_name_access(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
+                                    void *arg);
 
 // 0x2A26 - Firmware Revision String
-int device_firmware_revision_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
-                                void *arg);
+int gatt_svr_chr_device_firmware_access(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
+                                        void *arg);
 
 // 0x2A27 - Hardware Revision String
-int device_hardware_revision_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
-                                void *arg);
+int gatt_svr_chr_device_hardware_access(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
+                                        void *arg);
 
 // 0x2A29 - Manufacturer Name String
-int device_manufacturer_cb(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg);
+int gatt_svr_chr_device_manufacturer_access(uint16_t conn_handle, uint16_t attr_handle,
+                                            struct ble_gatt_access_ctxt *ctxt, void *arg);

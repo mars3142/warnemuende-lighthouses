@@ -19,3 +19,4 @@ extern uint16_t tx_chr_val_handle;
 
 int gatt_svr_chr_uart_access(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt, void *arg);
 void send_ble_data(const char *data);
+void uart_tx_task(void *param);

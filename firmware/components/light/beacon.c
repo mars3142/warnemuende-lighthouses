@@ -6,6 +6,7 @@
 #include "freertos/task.h"
 #include "led_strip.h"
 #include "light.h"
+#include "persistence.h"
 #include "sdkconfig.h"
 #include "semaphore.h"
 
@@ -84,6 +85,8 @@ esp_err_t beacon_start(void)
     {
         ESP_LOGI(TAG, "GPTimer started.");
     }
+
+    ESP_LOGD(TAG, "Beacon started.");
     return ret;
 }
 
@@ -110,6 +113,7 @@ esp_err_t beacon_stop(void)
     {
         ESP_LOGE(TAG, "Failed to enable gptimer: %s", esp_err_to_name(ret));
     }
+
     return ret;
 }
 

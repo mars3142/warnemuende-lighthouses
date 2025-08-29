@@ -68,3 +68,19 @@ void send_ble_data(const char *data)
         }
     }
 }
+
+void uart_tx_task(void *param)
+{
+    char buffer[50];
+    int count = 0;
+    while (1)
+    {
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        if (conn_handle != 0)
+        {
+            ESP_LOGI(TAG, "Sending data over BLE UART TX");
+            sprintf(buffer, "Hello World #%d", count++);
+            send_ble_data(buffer);
+        }
+    }
+}
