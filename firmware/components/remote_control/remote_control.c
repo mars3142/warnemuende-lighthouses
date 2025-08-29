@@ -1,3 +1,5 @@
+#include "include/remote_control.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -11,6 +13,7 @@
 #include "host/ble_uuid.h"
 #include "include/device_service.h"
 #include "include/light_service.h"
+#include "include/uart_service.h"
 #include "nimble/nimble_port.h"
 #include "nimble/nimble_port_freertos.h"
 #include "sdkconfig.h"
@@ -19,99 +22,127 @@
 
 static const char *TAG = "remote_control";
 
-static const ble_uuid16_t device_service_uuid = BLE_UUID16_INIT(0x180A);
-static const ble_uuid16_t light_service_uuid = BLE_UUID16_INIT(0xA000);
-static const ble_uuid16_t settings_service_uuid = BLE_UUID16_INIT(0xA999);
+static const ble_uuid16_t gatt_svr_svc_device_uuid = BLE_UUID16_INIT(0x180A);
+static const ble_uuid16_t gatt_svr_svc_light_uuid = BLE_UUID16_INIT(0xA000);
+static const ble_uuid16_t gatt_svr_svc_settings_uuid = BLE_UUID16_INIT(0xA999);
 
 uint8_t ble_addr_type;
-
-// Handle for the capability characteristic value
-static uint16_t g_capa_char_val_handle;
 
 static void ble_app_advertise(void);
 
 // Descriptors for the characteristics
-static struct ble_gatt_dsc_def led_char_desc[] = {{
-                                                      .uuid = BLE_UUID16_DECLARE(0x2901),
-                                                      .att_flags = BLE_ATT_F_READ,
-                                                      .access_cb = led_char_user_desc_cb,
-                                                  },
-                                                  {
-                                                      .uuid = BLE_UUID16_DECLARE(0x2904),
-                                                      .att_flags = BLE_ATT_F_READ,
-                                                      .access_cb = bool_char_presentation_cb,
-                                                  },
-                                                  {
-                                                      .uuid = BLE_UUID16_DECLARE(0x2906),
-                                                      .att_flags = BLE_ATT_F_READ,
-                                                      .access_cb = bool_char_valid_range_cb,
-                                                  },
-                                                  {0}};
+static struct ble_gatt_dsc_def led_char_desc[] = {
+    {
+        .uuid = BLE_UUID16_DECLARE(0x2901),
+        .att_flags = BLE_ATT_F_READ,
+        .access_cb = led_char_user_desc_cb,
+    },
+    {
+        .uuid = BLE_UUID16_DECLARE(0x2904),
+        .att_flags = BLE_ATT_F_READ,
+        .access_cb = bool_char_presentation_cb,
+    },
+    {
+        .uuid = BLE_UUID16_DECLARE(0x2906),
+        .att_flags = BLE_ATT_F_READ,
+        .access_cb = bool_char_valid_range_cb,
+    },
+    {0},
+};
 
-static struct ble_gatt_dsc_def beacon_char_desc[] = {{
-                                                         .uuid = BLE_UUID16_DECLARE(0x2901),
-                                                         .att_flags = BLE_ATT_F_READ,
-                                                         .access_cb = beacon_char_user_desc_cb,
-                                                     },
-                                                     {
-                                                         .uuid = BLE_UUID16_DECLARE(0x2904),
-                                                         .att_flags = BLE_ATT_F_READ,
-                                                         .access_cb = bool_char_presentation_cb,
-                                                     },
-                                                     {
-                                                         .uuid = BLE_UUID16_DECLARE(0x2906),
-                                                         .att_flags = BLE_ATT_F_READ,
-                                                         .access_cb = bool_char_valid_range_cb,
-                                                     },
-                                                     {0}};
+static struct ble_gatt_dsc_def beacon_char_desc[] = {
+    {
+        .uuid = BLE_UUID16_DECLARE(0x2901),
+        .att_flags = BLE_ATT_F_READ,
+        .access_cb = beacon_char_user_desc_cb,
+    },
+    {
+        .uuid = BLE_UUID16_DECLARE(0x2904),
+        .att_flags = BLE_ATT_F_READ,
+        .access_cb = bool_char_presentation_cb,
+    },
+    {
+        .uuid = BLE_UUID16_DECLARE(0x2906),
+        .att_flags = BLE_ATT_F_READ,
+        .access_cb = bool_char_valid_range_cb,
+    },
+    {0},
+};
 
 // Array of pointers to service definitions
 static const struct ble_gatt_svc_def gatt_svcs[] = {
     {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = &device_service_uuid.u,
-        .characteristics = (struct ble_gatt_chr_def[]){{
-                                                           .uuid = BLE_UUID16_DECLARE(0x2A29),
-                                                           .flags = BLE_GATT_CHR_F_READ,
-                                                           .access_cb = device_manufacturer_cb,
-                                                       },
-                                                       {
-                                                           .uuid = BLE_UUID16_DECLARE(0x2A27),
-                                                           .flags = BLE_GATT_CHR_F_READ,
-                                                           .access_cb = device_hardware_revision_cb,
-                                                       },
-                                                       {
-                                                           .uuid = BLE_UUID16_DECLARE(0x2A26),
-                                                           .flags = BLE_GATT_CHR_F_READ,
-                                                           .access_cb = device_firmware_revision_cb,
-                                                       },
-                                                       {
-                                                           .uuid = BLE_UUID16_DECLARE(0x2A00),
-                                                           .flags = BLE_GATT_CHR_F_READ,
-                                                           .access_cb = device_name_cb,
-                                                       },
-                                                       {0}},
+        .uuid = &gatt_svr_svc_device_uuid.u,
+        .characteristics =
+            (struct ble_gatt_chr_def[]){
+                {
+                    .uuid = BLE_UUID16_DECLARE(0x2A29),
+                    .flags = BLE_GATT_CHR_F_READ,
+                    .access_cb = device_manufacturer_cb,
+                },
+                {
+                    .uuid = BLE_UUID16_DECLARE(0x2A27),
+                    .flags = BLE_GATT_CHR_F_READ,
+                    .access_cb = device_hardware_revision_cb,
+                },
+                {
+                    .uuid = BLE_UUID16_DECLARE(0x2A26),
+                    .flags = BLE_GATT_CHR_F_READ,
+                    .access_cb = device_firmware_revision_cb,
+                },
+                {
+                    .uuid = BLE_UUID16_DECLARE(0x2A00),
+                    .flags = BLE_GATT_CHR_F_READ,
+                    .access_cb = device_name_cb,
+                },
+                {0},
+            },
     },
     {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = &light_service_uuid.u,
-        .characteristics = (struct ble_gatt_chr_def[]){{
-                                                           .uuid = BLE_UUID16_DECLARE(0xBEA0),
-                                                           .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
-                                                           .access_cb = beacon_cb,
-                                                           .descriptors = beacon_char_desc,
-                                                       },
-                                                       {
-                                                           .uuid = BLE_UUID16_DECLARE(0xF037),
-                                                           .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
-                                                           .access_cb = led_cb,
-                                                           .descriptors = led_char_desc,
-                                                       },
-                                                       {0}},
+        .uuid = &gatt_svr_svc_light_uuid.u,
+        .characteristics =
+            (struct ble_gatt_chr_def[]){
+                {
+                    .uuid = BLE_UUID16_DECLARE(0xBEA0),
+                    .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
+                    .access_cb = beacon_cb,
+                    .descriptors = beacon_char_desc,
+                },
+                {
+                    .uuid = BLE_UUID16_DECLARE(0xF037),
+                    .flags = BLE_GATT_CHR_F_READ | BLE_GATT_CHR_F_WRITE,
+                    .access_cb = led_cb,
+                    .descriptors = led_char_desc,
+                },
+                {0},
+            },
     },
     {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
-        .uuid = &settings_service_uuid.u,
+        .uuid = &gatt_svr_svc_uart_uuid.u,
+        .characteristics =
+            (struct ble_gatt_chr_def[]){
+                {
+                    // Characteristic: RX (Receiving of data)
+                    .uuid = &gatt_svr_chr_uart_rx_uuid.u,
+                    .access_cb = gatt_svr_chr_uart_access,
+                    .flags = BLE_GATT_CHR_F_WRITE | BLE_GATT_CHR_F_WRITE_NO_RSP,
+                },
+                {
+                    // Characteristic: TX (Sending of data)
+                    .uuid = &gatt_svr_chr_uart_tx_uuid.u,
+                    .access_cb = gatt_svr_chr_uart_access,
+                    .val_handle = &tx_chr_val_handle,
+                    .flags = BLE_GATT_CHR_F_NOTIFY,
+                },
+                {0},
+            },
+    },
+    {
+        .type = BLE_GATT_SVC_TYPE_PRIMARY,
+        .uuid = &gatt_svr_svc_settings_uuid.u,
         .characteristics = (struct ble_gatt_chr_def[]){{0}},
     },
     {0}};
@@ -122,50 +153,20 @@ static int ble_gap_event(struct ble_gap_event *event, void *arg)
     switch (event->type)
     {
     case BLE_GAP_EVENT_CONNECT:
-        ESP_LOGI(TAG, "BLE GAP EVENT CONNECT %s", event->connect.status == 0 ? "OK!" : "FAILED!");
-        if (event->connect.status != 0)
-        {
-            // Re-advertise if connection failed
-            ble_app_advertise();
-        }
+        ESP_LOGI(TAG, "Connection established; status=%d", event->connect.status);
+        conn_handle = event->connect.conn_handle;
+        ESP_LOGI(TAG, "Connection handle: %d", conn_handle);
         break;
 
     case BLE_GAP_EVENT_DISCONNECT:
-        ESP_LOGI(TAG, "BLE GAP EVENT DISCONNECTED");
-        // Re-advertise after disconnection
+        ESP_LOGI(TAG, "Disconnected; reason=%d", event->disconnect.reason);
+        conn_handle = 0;
         ble_app_advertise();
         break;
 
     case BLE_GAP_EVENT_ADV_COMPLETE:
-        ESP_LOGI(TAG, "BLE GAP EVENT ADV COMPLETE");
-        // Re-advertise to continue accepting new clients
+        ESP_LOGI(TAG, "Advertising complete");
         ble_app_advertise();
-        break;
-
-    case BLE_GAP_EVENT_SUBSCRIBE:
-        ESP_LOGI(TAG,
-                 "BLE GAP EVENT SUBSCRIBE conn_handle=%d attr_handle=%d reason=%d "
-                 "prev_notify=%d cur_notify=%d prev_indicate=%d cur_indicate=%d",
-                 event->subscribe.conn_handle, event->subscribe.attr_handle, event->subscribe.reason,
-                 event->subscribe.prev_notify, event->subscribe.cur_notify, event->subscribe.prev_indicate,
-                 event->subscribe.cur_indicate);
-
-        // Check if subscription is for the capability characteristic's CCCD.
-        // The CCCD handle is typically the characteristic value handle + 1.
-        // g_capa_char_val_handle stores the handle of the characteristic value itself.
-        if (event->subscribe.attr_handle == g_capa_char_val_handle + 1)
-        {
-            if (event->subscribe.cur_notify)
-            {
-                ESP_LOGI(TAG, "Client subscribed to capability notifications. Sending data...");
-                // Call the function to send capability data via notifications
-                // capa_notify_data(event->subscribe.conn_handle, g_capa_char_val_handle);
-            }
-            else
-            {
-                ESP_LOGI(TAG, "Client unsubscribed from capability notifications.");
-            }
-        }
         break;
 
     default:
@@ -183,7 +184,8 @@ static void ble_app_advertise(void)
     struct ble_hs_adv_fields fields;
     memset(&fields, 0, sizeof(fields));
     uint8_t mfg_data[] = {0xDE, 0xC0, 0x05, 0x10, 0x20, 0x25};
-    static const ble_uuid16_t services[] = {device_service_uuid, light_service_uuid, settings_service_uuid};
+    static const ble_uuid16_t services[] = {gatt_svr_svc_device_uuid, gatt_svr_svc_light_uuid,
+                                            gatt_svr_svc_settings_uuid};
 
     fields.flags = BLE_HS_ADV_F_DISC_GEN | BLE_HS_ADV_F_BREDR_UNSUP;
     fields.uuids16 = services;
@@ -254,6 +256,22 @@ static void ble_app_on_sync(void)
     ble_app_advertise();
 }
 
+static void uart_tx_task(void *param)
+{
+    char buffer[50];
+    int count = 0;
+    while (1)
+    {
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        if (conn_handle != 0)
+        {
+            ESP_LOGI(TAG, "Sending data over BLE UART TX");
+            sprintf(buffer, "Hello World #%d", count++);
+            send_ble_data(buffer);
+        }
+    }
+}
+
 // The infinite task
 static void host_task(void *param)
 {
@@ -268,8 +286,10 @@ void remote_control_init(void)
     ble_gatts_count_cfg(gatt_svcs);
     ble_gatts_add_svcs(gatt_svcs);
 
-    // Callback für Synchronisation
+    // Callback for synchronization
     ble_hs_cfg.sync_cb = ble_app_on_sync;
 
-    nimble_port_freertos_init(host_task); // Start BLE-Host-Task
+    nimble_port_freertos_init(host_task); // Start BLE host task
+
+    xTaskCreate(uart_tx_task, "uart_tx", 2048, NULL, 1, NULL);
 }
