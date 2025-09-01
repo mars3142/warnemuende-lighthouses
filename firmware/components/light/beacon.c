@@ -81,12 +81,8 @@ esp_err_t beacon_start(void)
     {
         ESP_LOGE(TAG, "Failed to start gptimer: %s", esp_err_to_name(ret));
     }
-    else
-    {
-        ESP_LOGI(TAG, "GPTimer started.");
-    }
 
-    ESP_LOGD(TAG, "Beacon started.");
+    ESP_LOGI(TAG, "GPTimer started.");
     return ret;
 }
 
@@ -103,10 +99,7 @@ esp_err_t beacon_stop(void)
     {
         ESP_LOGE(TAG, "Failed to stop gptimer: %s", esp_err_to_name(ret));
     }
-    else
-    {
-        ESP_LOGI(TAG, "GPTimer stopped.");
-    }
+    ESP_LOGI(TAG, "GPTimer stopped.");
 
     ret = gptimer_disable(gptimer);
     if (ret != ESP_OK)
