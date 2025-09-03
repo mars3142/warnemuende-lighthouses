@@ -1,0 +1,6 @@
+[submodule "hardware/mcu_board/library"]
+	path = hardware/mcu_board/library
+	url = https://git.mars3142.dev/mars3142/kicad_library.git
+[submodule "hardware/light_board/library"]
+	path = hardware/light_board/library
+	url = https://git.mars3142.dev/mars3142/kicad_library.git
