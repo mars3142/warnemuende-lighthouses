@@ -497,7 +497,7 @@
         "diff_pair_width": 0.2,
         "microvia_diameter": 0.3,
         "microvia_drill": 0.1,
-        "name": "Larger",
+        "name": "Power",
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "priority": 0,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
@@ -513,8 +513,12 @@
     "netclass_assignments": null,
     "netclass_patterns": [
       {
-        "netclass": "Larger",
+        "netclass": "Power",
         "pattern": "+5V"
+      },
+      {
+        "netclass": "Power",
+        "pattern": "VCC"
       }
     ]
   },

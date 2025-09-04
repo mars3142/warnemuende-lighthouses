@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "aliexpress")(type "KiCad")(uri "${KIPRJMOD}/library/aliexpress.kicad_sym")(options "")(descr ""))
+)
