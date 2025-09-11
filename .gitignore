@@ -3,3 +3,8 @@
 **/*-backups
 **/fp-info-cache
 **/fp-lib-table
+**/pcbway_production/
+**/*_front.png
+**/*_back.png
+**/*_schematics.png
+**/*_board.pdf
