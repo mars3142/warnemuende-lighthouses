@@ -637,7 +637,7 @@
       "version": 1
     },
     "net_format_name": "",
-    "page_layout_descr_file": "",
+    "page_layout_descr_file": "kicad-embed://pcbway.kicad_wks",
     "plot_directory": "",
     "space_save_all_events": true,
     "spice_current_sheet_as_root": false,
@@ -653,6 +653,10 @@
     [
       "7f117d42-0d8b-4a32-a9d3-0b04c0222a5a",
       "Root"
+    ],
+    [
+      "3530c7d0-16a6-4646-8301-a5537eed1d29",
+      "Buck Converter"
     ]
   ],
   "text_variables": {}
