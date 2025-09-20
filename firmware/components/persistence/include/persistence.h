@@ -3,6 +3,7 @@
 typedef enum
 {
     VALUE_TYPE_STRING,
+    VALUE_TYPE_INT8,
     VALUE_TYPE_INT32,
 } persistence_value_type_t;
 

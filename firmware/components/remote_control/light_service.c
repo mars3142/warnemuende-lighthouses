@@ -3,6 +3,7 @@
 #include "persistence.h"
 
 static uint8_t g_beacon_enabled = 0;
+static int8_t g_led_value = 0;
 
 /// Characteristic Callbacks
 int gatt_svr_chr_light_led_access(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
@@ -14,13 +15,18 @@ int gatt_svr_chr_light_led_access(uint16_t conn_handle, uint16_t attr_handle, st
         os_mbuf_append(ctxt->om, data, strlen(data));
         return 0;
     }
+    if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR)
+    {
+        int8_t led_value = 0;
+        persistence_load(VALUE_TYPE_INT8, "LED_VALUE", &led_value);
+    }
     return BLE_ATT_ERR_UNLIKELY;
 }
 
 int gatt_svr_chr_light_beacon_access(uint16_t conn_handle, uint16_t attr_handle, struct ble_gatt_access_ctxt *ctxt,
                                      void *arg)
 {
-    persistence_load(VALUE_TYPE_INT32, "BEACON_ENABLED", &g_beacon_enabled);
+
     if (ctxt->op == BLE_GATT_ACCESS_OP_READ_CHR)
     {
         return os_mbuf_append(ctxt->om, &g_beacon_enabled, sizeof(g_beacon_enabled)) == 0
@@ -29,6 +35,9 @@ int gatt_svr_chr_light_beacon_access(uint16_t conn_handle, uint16_t attr_handle,
     }
     if (ctxt->op == BLE_GATT_ACCESS_OP_WRITE_CHR)
     {
+        int8_t beacon_enabled = 0;
+        persistence_load(VALUE_TYPE_INT8, "BEACON_ENABLED", &beacon_enabled);
+
         // it has to be 1 Byte (0 or 1)
         if (OS_MBUF_PKTLEN(ctxt->om) != 1)
         {
@@ -56,7 +65,7 @@ int gatt_svr_chr_light_beacon_access(uint16_t conn_handle, uint16_t attr_handle,
         {
             beacon_stop();
         }
-        persistence_save(VALUE_TYPE_INT32, "BEACON_ENABLED", &g_beacon_enabled);
+        persistence_save(VALUE_TYPE_INT8, "BEACON_ENABLED", &g_beacon_enabled);
         return 0;
     }
     return BLE_ATT_ERR_UNLIKELY;

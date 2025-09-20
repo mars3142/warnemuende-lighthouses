@@ -1,6 +1,5 @@
 # Name   , Type , SubType  , Offset  , Size  , Flags
-nvs      , data , nvs      , 0x9000  ,   20k ,
-otadata  , data , ota      , 0xe000  ,    8k ,
-app0     , app  , ota_0    , 0x10000 , 1792k ,
-app1     , app  , ota_1    ,         , 1792k ,
+nvs      , data , nvs      , 0x9000  ,   24k ,
+phy_init , data , phy      ,         ,    4k ,
+factory  , app  , factory  , 0x10000 , 3584K ,
 coredump , data , coredump ,         ,   64k ,

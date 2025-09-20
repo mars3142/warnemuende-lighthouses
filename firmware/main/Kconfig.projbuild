@@ -15,4 +15,29 @@ menu "Warnemuende Lighthouse"
         int
         default 1 if WLED_USE_DMA
         default 0 if !WLED_USE_DMA
+
+    config WLED_WITH_WHITE
+        bool "WLED with White Channel"
+        default y
+        help
+            Use a WLED strip with a white channel (e.g. WS2812B RGBW).
+
+    config LED_PIN_LEFT
+        int "LED Left Pin"
+        default 11
+        help
+            The pin of the LED for the left side.
+
+    config LED_PIN_RIGHT
+        int "LED Right Pin"
+        default 12
+        help
+            The pin of the LED for the right side.
+
+    config BONDING_PASSPHRASE
+        int "Bonding Passphrase"
+        default 123456
+        help
+            The passphrase for the BLE bonding.
+
 endmenu

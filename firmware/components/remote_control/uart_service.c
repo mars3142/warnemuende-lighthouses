@@ -1,4 +1,7 @@
 #include "include/uart_service.h"
+#include "esp_log.h"
+#include "include/remote_control.h"
+#include "sdkconfig.h"
 
 static const char *TAG = "uart_service";
 
@@ -14,7 +17,6 @@ const ble_uuid128_t gatt_svr_chr_uart_rx_uuid =
 const ble_uuid128_t gatt_svr_chr_uart_tx_uuid =
     BLE_UUID128_INIT(0x9E, 0xCA, 0xDC, 0x24, 0x0E, 0xE5, 0xA9, 0xE0, 0x93, 0xF3, 0xA3, 0xB5, 0x03, 0x00, 0x40, 0x6E);
 
-uint16_t conn_handle;
 uint16_t tx_chr_val_handle;
 
 // Callback function for GATT events (read/write on characteristics)
@@ -51,19 +53,26 @@ int gatt_svr_chr_uart_access(uint16_t conn_handle, uint16_t attr_handle, struct 
 // Function to send data via the TX characteristic
 void send_ble_data(const char *data)
 {
-    if (conn_handle != 0)
-    { // Only send when connected
-        struct os_mbuf *om = ble_hs_mbuf_from_flat(data, strlen(data));
-        if (om)
+    ESP_LOGI(TAG, "Preparing to send data: %s", data);
+
+    struct os_mbuf *om;
+
+    for (int i = 0; i < CONFIG_BT_NIMBLE_MAX_CONNECTIONS; i++)
+    {
+        if (g_connections[i].is_connected)
         {
-            int rc = ble_gatts_notify_custom(conn_handle, tx_chr_val_handle, om);
-            if (rc == 0)
+            om = ble_hs_mbuf_from_flat(data, strlen(data));
+            if (om)
             {
-                ESP_LOGI(TAG, "Sent data: %s", data);
-            }
-            else
-            {
-                ESP_LOGE(TAG, "Error sending data: %d", rc);
+                int rc = ble_gatts_notify_custom(g_connections[i].conn_handle, tx_chr_val_handle, om);
+                if (rc == 0)
+                {
+                    ESP_LOGI(TAG, "Sent data to conn_handle %d: %s", g_connections[i].conn_handle, data);
+                }
+                else if (rc != BLE_HS_ENOTCONN) // Ignore "not connected" errors if a device just disconnected
+                {
+                    ESP_LOGE(TAG, "Error sending data to conn_handle %d: %d", g_connections[i].conn_handle, rc);
+                }
             }
         }
     }
@@ -76,7 +85,7 @@ void uart_tx_task(void *param)
     while (1)
     {
         vTaskDelay(pdMS_TO_TICKS(2000));
-        if (conn_handle != 0)
+        if (is_any_device_connected())
         {
             ESP_LOGI(TAG, "Sending data over BLE UART TX");
             sprintf(buffer, "Hello World #%d", count++);

@@ -25,14 +25,6 @@ void app_main(void)
         printf("Failed to initialize beacon");
         return;
     }
-    /// start beacon service
-    uint8_t beacon_enabled = 1;
-    persistence_load(VALUE_TYPE_INT32, "BEACON_ENABLED", &beacon_enabled);
-    if (beacon_enabled && beacon_start() != ESP_OK)
-    {
-        printf("Failed to start beacon");
-        return;
-    }
 
     /// start outdoor light service
     if (outdoor_start() != ESP_OK)

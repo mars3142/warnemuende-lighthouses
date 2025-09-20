@@ -14,7 +14,11 @@ esp_err_t wled_init(void)
     led_strip_config_t strip_config = {.strip_gpio_num = CONFIG_WLED_DIN_PIN,
                                        .max_leds = led_matrix.size,
                                        .led_model = LED_MODEL_WS2812,
-                                       .color_component_format = LED_STRIP_COLOR_COMPONENT_FMT_GRB,
+#if CONFIG_WLED_WITH_WHITE
+                                       .color_component_format = LED_STRIP_COLOR_COMPONENT_FMT_GRBW,
+#else
+                                       .color_component_format = LED_STRIP_COLOR_COMPONENT_FMT_RGB,
+#endif
                                        .flags = {
                                            .invert_out = false,
                                        }};
