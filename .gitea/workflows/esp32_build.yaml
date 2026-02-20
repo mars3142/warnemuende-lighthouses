@@ -8,8 +8,6 @@ on:
   pull_request:
   merge_group:
   workflow_dispatch:
-  schedule:
-    - cron: "0 5 * * 3"
 
 permissions:
   contents: read
