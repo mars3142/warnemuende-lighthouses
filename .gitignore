@@ -8,3 +8,7 @@
 **/*_back.png
 **/*_schematics*.png
 **/*_board.pdf
+firmware/.vscode/c_cpp_properties.json
+hardware/mcu_board/.history/
+*.lck
+wiki/

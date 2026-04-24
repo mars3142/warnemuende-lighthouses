@@ -16,6 +16,7 @@ static SemaphoreHandle_t timer_semaphore;
 gptimer_handle_t gptimer = NULL;
 
 static const uint32_t value = 200;
+static const uint32_t alarm_value = 2000000;
 
 static bool IRAM_ATTR beacon_timer_callback(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata,
                                             void *userCtx)
@@ -69,7 +70,7 @@ esp_err_t beacon_start(void)
         return beacon_stop();
     }
 
-    ret = gptimer_set_raw_count(gptimer, 0);
+    ret = gptimer_set_raw_count(gptimer, alarm_value - 1);
     if (ret != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to set gptimer raw count: %s", esp_err_to_name(ret));
@@ -171,5 +172,26 @@ cleanupTimer:
         gptimer = NULL;
     }
 exit:
+    return ret;
+}
+
+esp_err_t beacon_toggle(void)
+{
+    int8_t beacon_enabled = 0;
+    persistence_load(VALUE_TYPE_INT8, "BEACON_ENABLED", &beacon_enabled);
+
+    esp_err_t ret;
+    if (beacon_enabled)
+    {
+        ret = beacon_stop();
+    }
+    else
+    {
+        ret = beacon_start();
+    }
+
+    beacon_enabled = 1 - beacon_enabled;
+    persistence_save(VALUE_TYPE_INT8, "BEACON_ENABLED", &beacon_enabled);
+
     return ret;
 }

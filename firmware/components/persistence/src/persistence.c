@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "nvs_flash.h"
+#include <inttypes.h>
 
 static const char *TAG = "persistence";
 
@@ -68,7 +69,7 @@ void display_nvs_value(const char *namespace_name, const char *key, nvs_type_t t
         int32_t value;
         if (nvs_get_i32(handle, key, &value) == ESP_OK)
         {
-            ESP_LOGI(TAG, "  -> Value (I32): %d", value);
+            ESP_LOGI(TAG, "  -> Value (I32): %" PRId32, value);
         }
         break;
     }
@@ -91,7 +92,7 @@ void display_nvs_value(const char *namespace_name, const char *key, nvs_type_t t
         nvs_get_blob(handle, key, NULL, &length);
         if (length > 0)
         {
-            ESP_LOGI(TAG, "  -> Value (BLOB): %d bytes", length);
+            ESP_LOGI(TAG, "  -> Value (BLOB): %zu bytes", length);
 
             // Optional: Erste Bytes als Hex anzeigen
             uint8_t *blob = malloc(length);
@@ -144,12 +145,12 @@ static void check_nvs_stats(void)
     esp_err_t err = nvs_get_stats(NULL, &nvs_stats);
     if (err == ESP_OK)
     {
-        ESP_LOGI(TAG, "NVS: Used entries = %d, Free entries = %d, Total entries = %d", nvs_stats.used_entries,
+        ESP_LOGI(TAG, "NVS: Used entries = %zu, Free entries = %zu, Total entries = %zu", nvs_stats.used_entries,
                  nvs_stats.free_entries, nvs_stats.total_entries);
 
         size_t used_kb = (nvs_stats.used_entries * 32) / 1024; // Grobe Schätzung
         size_t free_kb = (nvs_stats.free_entries * 32) / 1024;
-        ESP_LOGI(TAG, "NVS: ~%d KB used, ~%d KB free", used_kb, free_kb);
+        ESP_LOGI(TAG, "NVS: ~%zu KB used, ~%zu KB free", used_kb, free_kb);
     }
 }
 

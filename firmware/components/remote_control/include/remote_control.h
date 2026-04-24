@@ -12,4 +12,7 @@ typedef struct
 extern ble_connection_t g_connections[CONFIG_BT_NIMBLE_MAX_CONNECTIONS];
 
 void remote_control_init(void);
+void remote_control_register_gatt(void);
+void remote_control_start_advertising(void);
+void remote_control_stop_advertising(void);
 bool is_any_device_connected(void);

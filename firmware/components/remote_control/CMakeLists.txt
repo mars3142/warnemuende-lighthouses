@@ -1,9 +1,9 @@
 idf_component_register(SRCS 
-                        "char_desc.c"
-                        "device_service.c"
-                        "light_service.c"
-                        "remote_control.c"
-                        "uart_service.c"
+                        "src/char_desc.c"
+                        "src/device_service.c"
+                        "src/light_service.c"
+                        "src/remote_control.c"
+                        "src/uart_service.c"
                     INCLUDE_DIRS "include"
                     PRIV_REQUIRES
                         bt

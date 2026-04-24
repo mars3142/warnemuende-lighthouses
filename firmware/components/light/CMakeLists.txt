@@ -1,7 +1,7 @@
 idf_component_register(SRCS 
-                        "beacon.c"
-                        "light.c"
-                        "outdoor.c"
+                        "src/beacon.c"
+                        "src/light.c"
+                        "src/outdoor.c"
                     INCLUDE_DIRS "include"
                     PRIV_REQUIRES
                         esp_driver_gpio

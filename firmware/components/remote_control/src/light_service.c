@@ -1,4 +1,4 @@
-#include "include/light_service.h"
+#include "light_service.h"
 #include "beacon.h"
 #include "persistence.h"
 

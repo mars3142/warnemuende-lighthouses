@@ -1,3 +1,4 @@
+#include "beacon.h"
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
@@ -28,6 +29,7 @@ static void debounce_timer_callback(TimerHandle_t xTimer)
 
         if (current_level == 0)
         {
+            beacon_toggle();
             ESP_LOGI(TAG, "Touch detected (debounced)!");
         }
         else

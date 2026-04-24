@@ -1,26 +1,27 @@
-#include "include/remote_control.h"
+#include <inttypes.h>
 
+#include "remote_control.h"
+
+#include "char_desc.h"
+#include "device_service.h"
+#include "light_service.h"
+#include "uart_service.h"
+#include <esp_event.h>
+#include <esp_log.h>
+#include <esp_mac.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/event_groups.h>
+#include <freertos/task.h>
+#include <host/ble_hs.h>
+#include <host/ble_sm.h>
+#include <host/ble_uuid.h>
+#include <nimble/nimble_port.h>
+#include <nimble/nimble_port_freertos.h>
+#include <sdkconfig.h>
+#include <services/gap/ble_svc_gap.h>
+#include <services/gatt/ble_svc_gatt.h>
 #include <stdio.h>
 #include <string.h>
-
-#include "esp_event.h"
-#include "esp_log.h"
-#include "esp_mac.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
-#include "freertos/task.h"
-#include "host/ble_hs.h"
-#include "host/ble_sm.h"
-#include "host/ble_uuid.h"
-#include "include/char_desc.h"
-#include "include/device_service.h"
-#include "include/light_service.h"
-#include "include/uart_service.h"
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
-#include "sdkconfig.h"
-#include "services/gap/ble_svc_gap.h"
-#include "services/gatt/ble_svc_gatt.h"
 
 void ble_store_config_init(void);
 
@@ -306,7 +307,7 @@ static int ble_gap_event(struct ble_gap_event *event, void *arg)
         case BLE_SM_IOACT_DISP:
             pkey.action = BLE_SM_IOACT_DISP;
             pkey.passkey = CONFIG_BONDING_PASSPHRASE;
-            ESP_LOGI(TAG, "Displaying passkey: %06d", pkey.passkey);
+            ESP_LOGI(TAG, "Displaying passkey: %06" PRIu32, pkey.passkey);
             rc = ble_sm_inject_io(event->passkey.conn_handle, &pkey);
             if (rc != 0)
             {
@@ -441,10 +442,14 @@ static void on_stack_reset(int reason)
 
 static void on_stack_sync(void)
 {
+    remote_control_start_advertising();
+}
+
+void remote_control_start_advertising(void)
+{
     esp_err_t ret;
     uint8_t ble_addr[6] = {0};
 
-    /* Figure out address to use while advertising (no privacy for now) */
     ret = ble_hs_id_infer_auto(0, &ble_addr_type);
     if (ret != 0)
     {
@@ -462,8 +467,12 @@ static void on_stack_sync(void)
     snprintf(formatted_name, sizeof(formatted_name), "Lighthouse %02X%02X", ble_addr[4], ble_addr[5]);
     ble_svc_gap_device_name_set(formatted_name);
 
-    // Start Advertising
     ble_app_advertise();
+}
+
+void remote_control_stop_advertising(void)
+{
+    ble_gap_adv_stop();
 }
 
 static esp_err_t gatt_svc_init(void)
@@ -517,6 +526,23 @@ static void nimble_host_config_init(void)
     ble_store_config_init();
 }
 
+void remote_control_register_gatt(void)
+{
+    init_connection_pool();
+    gap_init();
+    gatt_svc_init();
+
+    ble_hs_cfg.sm_io_cap = BLE_SM_IO_CAP_DISP_ONLY;
+    ble_hs_cfg.sm_bonding = 1;
+    ble_hs_cfg.sm_mitm = 1;
+    ble_hs_cfg.sm_our_key_dist |= BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
+    ble_hs_cfg.sm_their_key_dist |= BLE_SM_PAIR_KEY_DIST_ENC | BLE_SM_PAIR_KEY_DIST_ID;
+    ble_hs_cfg.store_status_cb = ble_store_util_status_rr;
+    ble_store_config_init();
+
+    xTaskCreate(uart_tx_task, "uart_tx", 2048, NULL, 1, NULL);
+}
+
 void remote_control_init(void)
 {
     esp_err_t ret;
@@ -528,25 +554,7 @@ void remote_control_init(void)
         return;
     }
 
-    init_connection_pool();
-
-    ret = gap_init();
-    if (ret != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to initialize GAP service (err: %s)", esp_err_to_name(ret));
-        return;
-    }
-
-    ret = gatt_svc_init();
-    if (ret != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to initialize GATT server (err: %s)", esp_err_to_name(ret));
-        return;
-    }
-
+    remote_control_register_gatt();
     nimble_host_config_init();
-
-    nimble_port_freertos_init(host_task); // Start BLE host task
-
-    xTaskCreate(uart_tx_task, "uart_tx", 2048, NULL, 1, NULL);
+    nimble_port_freertos_init(host_task);
 }

@@ -84,5 +84,8 @@ esp_err_t outdoor_stop(void)
     vTaskDelete(outdoor_task_handle);
     outdoor_task_handle = NULL;
 
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+
     return ESP_OK;
 }

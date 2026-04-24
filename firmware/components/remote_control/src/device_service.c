@@ -1,5 +1,5 @@
-#include "include/device_service.h"
-#include "esp_app_desc.h"
+#include "device_service.h"
+#include <esp_app_desc.h>
 #include <stdio.h>
 #include <string.h>
 

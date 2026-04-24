@@ -37,3 +37,5 @@ esp_err_t beacon_start(void);
  *     - Error codes in case of failure, indicating the specific issue.
  */
 esp_err_t beacon_stop(void);
+
+esp_err_t beacon_toggle(void);

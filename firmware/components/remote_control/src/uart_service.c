@@ -1,7 +1,7 @@
-#include "include/uart_service.h"
-#include "esp_log.h"
-#include "include/remote_control.h"
-#include "sdkconfig.h"
+#include "uart_service.h"
+#include "remote_control.h"
+#include <esp_log.h>
+#include <sdkconfig.h>
 
 static const char *TAG = "uart_service";
 
