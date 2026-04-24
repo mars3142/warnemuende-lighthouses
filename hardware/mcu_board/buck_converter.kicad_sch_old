@@ -7,7 +7,7 @@
 	(title_block
 		(title "Mole Beacon")
 		(date "05.10.2025")
-		(rev "2.2")
+		(rev "2.1")
 		(company "Peter Siegmund")
 		(comment 1 "kicad@mars3142.org")
 		(comment 2 "https://wiki.mars3142.dev/project/maerklin/warnemuende/lighthouse/start")
@@ -545,7 +545,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "b229468b-72ca-47f8-8cce-9b4eb7310737")
-		(property "Reference" "J5"
+		(property "Reference" "J6"
 			(at 101.6 49.53 0)
 			(effects
 				(font
@@ -603,7 +603,7 @@
 		(instances
 			(project "mcu_board"
 				(path "/7f117d42-0d8b-4a32-a9d3-0b04c0222a5a/3530c7d0-16a6-4646-8301-a5537eed1d29"
-					(reference "J5")
+					(reference "J6")
 					(unit 1)
 				)
 			)
