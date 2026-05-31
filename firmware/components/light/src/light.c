@@ -1,4 +1,5 @@
 #include "light.h"
+#include "light_priv.h"
 
 #include "sdkconfig.h"
 
@@ -32,8 +33,7 @@ esp_err_t wled_init(void)
 
     ESP_ERROR_CHECK(led_strip_new_rmt_device(&strip_config, &rmt_config, &led_matrix.led_strip));
 
-    for (uint32_t i = 0; i < led_matrix.size; i++)
-    {
+    for (uint32_t i = 0; i < led_matrix.size; i++) {
         led_strip_set_pixel(led_matrix.led_strip, i, 0, 0, 0);
     }
     led_strip_refresh(led_matrix.led_strip);

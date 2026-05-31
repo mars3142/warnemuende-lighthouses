@@ -8,3 +8,14 @@ CONFIG_ENABLE_WIFI_TELEMETRY=n
 
 # ESP System Settings
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_48=y
+
+# OpenThread FTD (Full Thread Device)
+# Allows the device to act as a Router and extend the mesh network.
+CONFIG_OPENTHREAD_FTD=y
+CONFIG_OPENTHREAD_MTD=n
+
+# Thread channel — must match system-control (C6)
+CONFIG_OPENTHREAD_NETWORK_CHANNEL=18
+
+# OpenThread log level — WARN keeps the serial output manageable
+CONFIG_OPENTHREAD_LOG_LEVEL_WARN=y

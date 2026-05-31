@@ -1,24 +1,16 @@
 #pragma once
 
 #include "beacon.h"
-#include "led_strip.h"
 #include "outdoor.h"
 
 #include "esp_err.h"
 
-typedef struct
-{
-    led_strip_handle_t led_strip;
-    uint32_t size;
-} LedMatrix_t;
-
-LedMatrix_t get_led_matrix(void);
-
 /**
- * @brief Initializes the WLED module.
+ * @brief Initializes the WS2812 LED strip via RMT.
  *
- * This function configures the WLED module for operation, preparing it for subsequent
- * usage such as enabling lighting effects or communication.
+ * Configures the RMT peripheral for the data pin defined by
+ * `CONFIG_WLED_DIN_PIN` and blanks all pixels. Must be called once before
+ * any other LED operations.
  *
  * @return
  *     - ESP_OK: Initialization completed successfully.

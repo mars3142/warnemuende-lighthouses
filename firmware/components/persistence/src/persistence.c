@@ -46,6 +46,7 @@ static const char *nvs_type_to_str(nvs_type_t type)
     }
 }
 
+#if CONFIG_LOG_DEFAULT_LEVEL >= ESP_LOG_DEBUG
 void display_nvs_value(const char *namespace_name, const char *key, nvs_type_t type)
 {
     nvs_handle_t handle;
@@ -138,6 +139,7 @@ static void list_all_nvs_entries(void)
     nvs_release_iterator(it);
     ESP_LOGI(TAG, "==================================");
 }
+#endif
 
 static void check_nvs_stats(void)
 {
@@ -164,7 +166,9 @@ void persistence_init(const char *namespace_name)
     }
     ESP_ERROR_CHECK(ret);
 
+#if CONFIG_LOG_DEFAULT_LEVEL >= ESP_LOG_DEBUG
     list_all_nvs_entries();
+#endif
     check_nvs_stats();
 
     ESP_ERROR_CHECK(nvs_open(namespace_name, NVS_READWRITE, &persistence_handle));

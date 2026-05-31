@@ -1,4 +1,8 @@
 dependencies:
   idf:
-    version: '>=5.4.0'
-  espressif/esp_matter: ^1.4.0
+    # IDF 5.5.x: esp_netif input_fn return-type changed (void → esp_netif_recv_ret_t),
+    #            openthread/src/esp_openthread_lwip_netif.c not updated → compile error.
+    # IDF 6.0.x: mbedTLS 4.x removed EC-JPAKE (mbedtls_ssl_set_hs_ecjpake_password),
+    #            Thread Joiner/Commissioner DTLS handshake broken.
+    # Tested working: 5.4.x
+    version: ">=5.4.0,<5.5.0"

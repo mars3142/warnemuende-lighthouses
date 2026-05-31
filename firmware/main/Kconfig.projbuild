@@ -1,7 +1,7 @@
 menu "Warnemuende Lighthouse"
     config WLED_DIN_PIN
         int "WLED Data In Pin"
-        default 8
+        default 10
         help
             The number of the WLED data in pin.
 
@@ -24,20 +24,14 @@ menu "Warnemuende Lighthouse"
 
     config LED_PIN_LEFT
         int "LED Left Pin"
-        default 11
+        default 13
         help
             The pin of the LED for the left side.
 
     config LED_PIN_RIGHT
         int "LED Right Pin"
-        default 12
+        default 14
         help
             The pin of the LED for the right side.
-
-    config BONDING_PASSPHRASE
-        int "Bonding Passphrase"
-        default 123456
-        help
-            The passphrase for the BLE bonding.
 
 endmenu

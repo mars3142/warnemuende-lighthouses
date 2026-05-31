@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "/Volumes/Coding/git.mars3142.dev/model-railway/system-control"
+    ],
+    "allow": [
+      "Bash(xargs ls -la)"
+    ]
+  }
+}
